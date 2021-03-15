@@ -1,0 +1,7 @@
+.gradle/
+**/build/
+!src/**/build/
+docs/
+
+*.jar
+*.hprof
