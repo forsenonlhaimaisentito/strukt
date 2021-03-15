@@ -68,6 +68,17 @@ This library requires [kapt].
 
 ### Gradle
 
+As this library is not yet available from any repo, you can use it through the
+[composite build] feature of Gradle, by cloning the project somewhere and
+including it by adding the following to your `settings.gradle` file:
+
+```groovy
+includeBuild "path/to/source"
+```
+
+After doing that, you'll be able to use it as a dependency as if it was from a
+Maven repo.
+
 #### Groovy DSL (build.gradle)
 
 ```groovy
@@ -106,3 +117,5 @@ submitting your patch. New code submitted to this repo must be covered by tests.
 [semantic versioning]: https://semver.org/ "Semantic Versioning"
 
 [kapt]: https://kotlinlang.org/docs/kapt.html "kapt docs"
+
+[composite build]: https://docs.gradle.org/current/userguide/composite_builds.html "Composite Builds"
