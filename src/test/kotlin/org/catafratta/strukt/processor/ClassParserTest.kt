@@ -35,9 +35,9 @@ class ClassParserTest {
             StructDef(
                 "test/StructB",
                 listOf(
-                    StructDef.Field("a", "test/SomeType1"),
-                    StructDef.Field("b", "test/SomeType2"),
-                    StructDef.Field("c", "test/SomeType3"),
+                    StructDef.Field.Object("a", "test/SomeType1"),
+                    StructDef.Field.Object("b", "test/SomeType2"),
+                    StructDef.Field.Object("c", "test/SomeType3"),
                 ),
                 classes[1].element
             ),

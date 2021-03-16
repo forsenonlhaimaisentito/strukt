@@ -20,8 +20,24 @@ internal data class StructDef(
      * @property name The field name
      * @property typeName The field type name
      */
-    internal data class Field(
-        val name: String,
-        val typeName: QualifiedName
-    )
+    internal sealed class Field {
+        abstract val name: String
+        abstract val typeName: QualifiedName
+
+        /**
+         * A struct field of primtive type.
+         */
+        data class Primitive(
+            override val name: String,
+            override val typeName: QualifiedName
+        ) : Field()
+
+        /**
+         * A struct field of object reference type.
+         */
+        data class Object(
+            override val name: String,
+            override val typeName: QualifiedName
+        ) : Field()
+    }
 }

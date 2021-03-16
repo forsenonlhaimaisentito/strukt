@@ -18,10 +18,12 @@ internal data class KotlinElement(val element: Element, val klass: ImmutableKmCl
         private fun ImmutableKmClass.extractFields(): List<StructDef.Field> =
             constructors.first()
                 .valueParameters.map {
-                    StructDef.Field(
-                        it.name,
-                        (it.type!!.classifier as KmClassifier.Class).name
-                    )
+                    val typeName: QualifiedName = (it.type!!.classifier as KmClassifier.Class).name
+
+                    when {
+                        typeName.isPrimitive -> StructDef.Field.Primitive(it.name, typeName)
+                        else -> StructDef.Field.Object(it.name, typeName)
+                    }
                 }
     }
 }

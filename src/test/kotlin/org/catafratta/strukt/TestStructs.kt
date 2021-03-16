@@ -70,13 +70,13 @@ data class AllPrimitivesStruct(
         internal val PARSED = StructDef(
             AllPrimitivesStruct::class.qualifiedName!!.replace('.', '/'),
             listOf(
-                StructDef.Field("byte", "kotlin/Byte"),
-                StructDef.Field("short", "kotlin/Short"),
-                StructDef.Field("char", "kotlin/Char"),
-                StructDef.Field("int", "kotlin/Int"),
-                StructDef.Field("long", "kotlin/Long"),
-                StructDef.Field("float", "kotlin/Float"),
-                StructDef.Field("double", "kotlin/Double"),
+                StructDef.Field.Primitive("byte", "kotlin/Byte"),
+                StructDef.Field.Primitive("short", "kotlin/Short"),
+                StructDef.Field.Primitive("char", "kotlin/Char"),
+                StructDef.Field.Primitive("int", "kotlin/Int"),
+                StructDef.Field.Primitive("long", "kotlin/Long"),
+                StructDef.Field.Primitive("float", "kotlin/Float"),
+                StructDef.Field.Primitive("double", "kotlin/Double"),
             ),
             MockElement()
         )
@@ -106,7 +106,7 @@ data class SimpleStruct(val field: Int) : TestStruct {
             internal val PARSED = StructDef(
                 MemberStruct::class.qualifiedName!!.replace('.', '/'),
                 listOf(
-                    StructDef.Field("field", SimpleStruct.PARSED.name)
+                    StructDef.Field.Object("field", SimpleStruct.PARSED.name)
                 ),
                 MockElement()
             )
@@ -117,7 +117,7 @@ data class SimpleStruct(val field: Int) : TestStruct {
         internal val PARSED = StructDef(
             SimpleStruct::class.qualifiedName!!.replace('.', '/'),
             listOf(
-                StructDef.Field("field", "kotlin/Int")
+                StructDef.Field.Primitive("field", "kotlin/Int")
             ),
             MockElement()
         )
@@ -143,8 +143,8 @@ data class NestedStruct(
         internal val PARSED = StructDef(
             NestedStruct::class.qualifiedName!!.replace('.', '/'),
             listOf(
-                StructDef.Field("field", "kotlin/Long"),
-                StructDef.Field("child", SimpleStruct.PARSED.name)
+                StructDef.Field.Primitive("field", "kotlin/Long"),
+                StructDef.Field.Object("child", SimpleStruct.PARSED.name)
             ),
             MockElement()
         )
