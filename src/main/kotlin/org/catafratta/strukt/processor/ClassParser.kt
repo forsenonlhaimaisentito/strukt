@@ -8,9 +8,9 @@ import com.squareup.kotlinpoet.metadata.*
 @KotlinPoetMetadataPreview
 internal class ClassParser {
     /**
-     * Verifies that all the classes are valid and then transforms them into [DeclaredStruct]s.
+     * Verifies that all the classes are valid and then transforms them into [StructDef]s.
      */
-    fun parse(classes: List<KotlinElement>): List<DeclaredStruct> {
+    fun parse(classes: List<KotlinElement>): List<StructDef> {
         return classes
             .filterNot { it.klass.isAnnotation }          // Exclude annotations
             .onEach { it.verifyInputClass() }             // Validate classes

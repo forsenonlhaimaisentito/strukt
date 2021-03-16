@@ -7,7 +7,7 @@ internal class DependencyCheckerTest {
     @Test
     fun testPrimitives() {
         val structs = listOf(
-            DeclaredStruct(
+            StructDef(
                 "test/StructB",
                 fieldsOf(
                     "byteField" to "kotlin/Byte",
@@ -28,10 +28,10 @@ internal class DependencyCheckerTest {
     @Test
     fun testValidDependencies() {
         val structs = listOf(
-            DeclaredStruct("test/StructA", fieldsOf("a" to "kotlin/Int"), MockElement()),
-            DeclaredStruct("test/StructB", fieldsOf("a" to "test/StructA", "b" to "kotlin/Int"), MockElement()),
-            DeclaredStruct("test/StructC", fieldsOf("a" to "test/StructD"), MockElement()),
-            DeclaredStruct("test/StructD", fieldsOf("a" to "kotlin/Int"), MockElement()),
+            StructDef("test/StructA", fieldsOf("a" to "kotlin/Int"), MockElement()),
+            StructDef("test/StructB", fieldsOf("a" to "test/StructA", "b" to "kotlin/Int"), MockElement()),
+            StructDef("test/StructC", fieldsOf("a" to "test/StructD"), MockElement()),
+            StructDef("test/StructD", fieldsOf("a" to "kotlin/Int"), MockElement()),
         )
 
         DependencyChecker().check(structs)
@@ -40,9 +40,9 @@ internal class DependencyCheckerTest {
     @Test(expected = ProcessingException::class)
     fun testMissingDependencies() {
         val structs = listOf(
-            DeclaredStruct("test/StructA", fieldsOf("a" to "kotlin/Int"), MockElement()),
-            DeclaredStruct("test/StructB", fieldsOf("a" to "test/StructA"), MockElement()),
-            DeclaredStruct("test/StructC", fieldsOf("a" to "test/StructD"), MockElement()),
+            StructDef("test/StructA", fieldsOf("a" to "kotlin/Int"), MockElement()),
+            StructDef("test/StructB", fieldsOf("a" to "test/StructA"), MockElement()),
+            StructDef("test/StructC", fieldsOf("a" to "test/StructD"), MockElement()),
         )
 
         DependencyChecker().check(structs)
@@ -51,10 +51,10 @@ internal class DependencyCheckerTest {
     @Test(expected = ProcessingException::class)
     fun testCircularDependencies() {
         val structs = listOf(
-            DeclaredStruct("test/StructA", fieldsOf("a" to "test/StructB"), MockElement()),
-            DeclaredStruct("test/StructB", fieldsOf("a" to "test/StructC"), MockElement()),
-            DeclaredStruct("test/StructC", fieldsOf("a" to "test/StructD"), MockElement()),
-            DeclaredStruct("test/StructD", fieldsOf("a" to "test/StructA"), MockElement()),
+            StructDef("test/StructA", fieldsOf("a" to "test/StructB"), MockElement()),
+            StructDef("test/StructB", fieldsOf("a" to "test/StructC"), MockElement()),
+            StructDef("test/StructC", fieldsOf("a" to "test/StructD"), MockElement()),
+            StructDef("test/StructD", fieldsOf("a" to "test/StructA"), MockElement()),
         )
 
         DependencyChecker().check(structs)

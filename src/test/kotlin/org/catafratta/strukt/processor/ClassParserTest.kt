@@ -31,13 +31,13 @@ class ClassParserTest {
         )
 
         val expected = listOf(
-            DeclaredStruct("test/StructA", emptyList(), classes[0].element),
-            DeclaredStruct(
+            StructDef("test/StructA", emptyList(), classes[0].element),
+            StructDef(
                 "test/StructB",
                 listOf(
-                    DeclaredStruct.Field("a", "test/SomeType1"),
-                    DeclaredStruct.Field("b", "test/SomeType2"),
-                    DeclaredStruct.Field("c", "test/SomeType3"),
+                    StructDef.Field("a", "test/SomeType1"),
+                    StructDef.Field("b", "test/SomeType2"),
+                    StructDef.Field("c", "test/SomeType3"),
                 ),
                 classes[1].element
             ),

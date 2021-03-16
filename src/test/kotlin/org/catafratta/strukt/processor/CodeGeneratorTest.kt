@@ -66,7 +66,7 @@ class CodeGeneratorTest {
             klass.java
                 .getDeclaredField("PARSED")
                 .apply { isAccessible = true }
-                .get(null) as DeclaredStruct
+                .get(null) as StructDef
         } catch (e: Exception) {
             throw RuntimeException("PARSED constant not found on test struct", e)
         }
@@ -75,13 +75,13 @@ class CodeGeneratorTest {
         return loadCompiledCodec(parsed) as Class<Codec<T>>
     }
 
-    private fun loadCompiledCodec(struct: DeclaredStruct): Class<*> {
-        val codecClass = compilerResult.classLoader.loadClass(struct.codecClassName())
+    private fun loadCompiledCodec(structDef: StructDef): Class<*> {
+        val codecClass = compilerResult.classLoader.loadClass(structDef.codecClassName())
         Assert.assertTrue("Generated class should implement Codec", Codec::class.java.isAssignableFrom(codecClass))
         return codecClass
     }
 
-    private fun DeclaredStruct.codecClassName(): String =
+    private fun StructDef.codecClassName(): String =
         CodecNamingStrategy.fullNameFor(name.packageName, name.classNames)
 
     companion object {

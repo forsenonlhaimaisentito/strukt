@@ -10,8 +10,8 @@ import org.catafratta.strukt.runtime.Strukt
 import java.nio.file.Path
 
 
-internal class CodeGenerator(private val struct: DeclaredStruct) {
-    private val structClass = ClassName(struct.name.packageName, struct.name.classNames)
+internal class CodeGenerator(private val structDef: StructDef) {
+    private val structClass = ClassName(structDef.name.packageName, structDef.name.classNames)
 
     private val codecClass =
         CodecNamingStrategy.nameFor(structClass.packageName, structClass.simpleNames).let { (pkg, cls) ->
@@ -60,14 +60,14 @@ internal class CodeGenerator(private val struct: DeclaredStruct) {
     private fun buildReadCode() = CodeBlock.builder().apply {
         add("return %T(\n", structClass)
         indent()
-        struct.fields.forEach { field ->
+        structDef.fields.forEach { field ->
             add("${field.name} = ${readStatementFor(field)},\n")
         }
         unindent()
         add(")")
     }.build()
 
-    private fun readStatementFor(field: DeclaredStruct.Field) = field.run {
+    private fun readStatementFor(field: StructDef.Field) = field.run {
         when {
             typeName.isPrimitive -> "source.read${typeName.classNames.last()}()"
             else -> "strukt.read(source)"
@@ -84,14 +84,14 @@ internal class CodeGenerator(private val struct: DeclaredStruct) {
     private fun buildWriteCode() = CodeBlock.builder().apply {
         add("value.run {\n")
         indent()
-        struct.fields.forEach { field ->
+        structDef.fields.forEach { field ->
             addStatement("${writeStatementFor(field)}\n")
         }
         unindent()
         add("}")
     }.build()
 
-    private fun writeStatementFor(field: DeclaredStruct.Field) = field.run {
+    private fun writeStatementFor(field: StructDef.Field) = field.run {
         when {
             typeName.isPrimitive -> "sink.write($name)"
             else -> "strukt.write($name, sink)"

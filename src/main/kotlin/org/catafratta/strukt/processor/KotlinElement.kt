@@ -7,18 +7,18 @@ import javax.lang.model.element.Element
 
 @KotlinPoetMetadataPreview
 internal data class KotlinElement(val element: Element, val klass: ImmutableKmClass) {
-    fun toDeclaredStruct(): DeclaredStruct =
-        DeclaredStruct(
+    fun toDeclaredStruct(): StructDef =
+        StructDef(
             klass.name,
             klass.extractFields(),
             element
         )
 
     companion object {
-        private fun ImmutableKmClass.extractFields(): List<DeclaredStruct.Field> =
+        private fun ImmutableKmClass.extractFields(): List<StructDef.Field> =
             constructors.first()
                 .valueParameters.map {
-                    DeclaredStruct.Field(
+                    StructDef.Field(
                         it.name,
                         (it.type!!.classifier as KmClassifier.Class).name
                     )

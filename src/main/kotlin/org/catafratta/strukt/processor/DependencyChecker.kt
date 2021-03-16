@@ -10,27 +10,27 @@ internal class DependencyChecker {
      *
      * @throws ProcessingException in case of broken dependencies
      */
-    fun check(structs: List<DeclaredStruct>) {
-        val graph = structs.buildGraph() // This will automatically check for missing dependencies
+    fun check(structDefs: List<StructDef>) {
+        val graph = structDefs.buildGraph() // This will automatically check for missing dependencies
         graph.checkForCycles()
     }
 
-    private fun List<DeclaredStruct>.buildGraph(): List<Node> = map { it.toNode() }.populateDependencies()
+    private fun List<StructDef>.buildGraph(): List<Node> = map { it.toNode() }.populateDependencies()
 
-    private fun DeclaredStruct.toNode() = Node(this, emptyList())
+    private fun StructDef.toNode() = Node(this, emptyList())
 
     private fun List<Node>.populateDependencies(): List<Node> = onEach { it.populateDependencies(this) }
 
     private fun Node.populateDependencies(available: List<Node>) {
-        dependencies = struct.fields
+        dependencies = structDef.fields
             .filterNot { it.typeName.isPrimitive }
             .map {
                 available.findByName(it.typeName)
-                    ?: throw ProcessingException("${it.name}: ${it.typeName} is not a struct", struct.source)
+                    ?: throw ProcessingException("${it.name}: ${it.typeName} is not a struct", structDef.source)
             }
     }
 
-    private fun List<Node>.findByName(name: String): Node? = find { it.struct.name == name }
+    private fun List<Node>.findByName(name: String): Node? = find { it.structDef.name == name }
 
     private fun List<Node>.checkForCycles() {
         val explored = mutableSetOf<Node>()
@@ -48,8 +48,8 @@ internal class DependencyChecker {
             when (dep) {
                 in explored -> return@forEach
                 in exploring -> {
-                    val cycleText = (exploring + this).joinToString(" → ") { it.struct.name }
-                    throw ProcessingException("Dependency cycle detected: $cycleText", struct.source)
+                    val cycleText = (exploring + this).joinToString(" → ") { it.structDef.name }
+                    throw ProcessingException("Dependency cycle detected: $cycleText", structDef.source)
                 }
                 else -> dep.depthFirstSearch(explored, exploring)
             }
@@ -59,8 +59,8 @@ internal class DependencyChecker {
     /**
      * Represents a node in a dependency graph.
      */
-    private data class Node(val struct: DeclaredStruct, var dependencies: List<Node>) {
-        override fun equals(other: Any?): Boolean = struct == (other as? Node)?.struct
-        override fun hashCode(): Int = struct.hashCode()
+    private data class Node(val structDef: StructDef, var dependencies: List<Node>) {
+        override fun equals(other: Any?): Boolean = structDef == (other as? Node)?.structDef
+        override fun hashCode(): Int = structDef.hashCode()
     }
 }

@@ -9,7 +9,7 @@ import javax.lang.model.element.Element
  * @property fields The fields defined by the class constructor arguments
  * @property source The source [Element] from which the data was derived
  */
-internal data class DeclaredStruct(
+internal data class StructDef(
     val name: QualifiedName,
     val fields: List<Field>,
     val source: Element

@@ -1,6 +1,6 @@
 package org.catafratta.strukt
 
-import org.catafratta.strukt.processor.DeclaredStruct
+import org.catafratta.strukt.processor.StructDef
 import org.catafratta.strukt.processor.MockElement
 import org.catafratta.strukt.runtime.Codec
 import org.catafratta.strukt.runtime.binarySink
@@ -67,16 +67,16 @@ data class AllPrimitivesStruct(
     }
 
     companion object {
-        internal val PARSED = DeclaredStruct(
+        internal val PARSED = StructDef(
             AllPrimitivesStruct::class.qualifiedName!!.replace('.', '/'),
             listOf(
-                DeclaredStruct.Field("byte", "kotlin/Byte"),
-                DeclaredStruct.Field("short", "kotlin/Short"),
-                DeclaredStruct.Field("char", "kotlin/Char"),
-                DeclaredStruct.Field("int", "kotlin/Int"),
-                DeclaredStruct.Field("long", "kotlin/Long"),
-                DeclaredStruct.Field("float", "kotlin/Float"),
-                DeclaredStruct.Field("double", "kotlin/Double"),
+                StructDef.Field("byte", "kotlin/Byte"),
+                StructDef.Field("short", "kotlin/Short"),
+                StructDef.Field("char", "kotlin/Char"),
+                StructDef.Field("int", "kotlin/Int"),
+                StructDef.Field("long", "kotlin/Long"),
+                StructDef.Field("float", "kotlin/Float"),
+                StructDef.Field("double", "kotlin/Double"),
             ),
             MockElement()
         )
@@ -103,10 +103,10 @@ data class SimpleStruct(val field: Int) : TestStruct {
         }
 
         companion object {
-            internal val PARSED = DeclaredStruct(
+            internal val PARSED = StructDef(
                 MemberStruct::class.qualifiedName!!.replace('.', '/'),
                 listOf(
-                    DeclaredStruct.Field("field", SimpleStruct.PARSED.name)
+                    StructDef.Field("field", SimpleStruct.PARSED.name)
                 ),
                 MockElement()
             )
@@ -114,10 +114,10 @@ data class SimpleStruct(val field: Int) : TestStruct {
     }
 
     companion object {
-        internal val PARSED = DeclaredStruct(
+        internal val PARSED = StructDef(
             SimpleStruct::class.qualifiedName!!.replace('.', '/'),
             listOf(
-                DeclaredStruct.Field("field", "kotlin/Int")
+                StructDef.Field("field", "kotlin/Int")
             ),
             MockElement()
         )
@@ -140,11 +140,11 @@ data class NestedStruct(
     }
 
     companion object {
-        internal val PARSED = DeclaredStruct(
+        internal val PARSED = StructDef(
             NestedStruct::class.qualifiedName!!.replace('.', '/'),
             listOf(
-                DeclaredStruct.Field("field", "kotlin/Long"),
-                DeclaredStruct.Field("child", SimpleStruct.PARSED.name)
+                StructDef.Field("field", "kotlin/Long"),
+                StructDef.Field("child", SimpleStruct.PARSED.name)
             ),
             MockElement()
         )

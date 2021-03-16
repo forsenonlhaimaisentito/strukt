@@ -1,9 +1,9 @@
 package org.catafratta.strukt
 
-import org.catafratta.strukt.processor.DeclaredStruct
+import org.catafratta.strukt.processor.StructDef
 
-internal fun fieldsOf(vararg fields: Pair<String, String>): List<DeclaredStruct.Field> =
-    fields.map { (name, typeName) -> DeclaredStruct.Field(name, typeName) }
+internal fun fieldsOf(vararg fields: Pair<String, String>): List<StructDef.Field> =
+    fields.map { (name, typeName) -> StructDef.Field(name, typeName) }
 
 
 internal fun parseHex(hex: CharSequence): ByteArray {
