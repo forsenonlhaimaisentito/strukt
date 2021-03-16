@@ -1,6 +1,7 @@
 package org.catafratta.strukt.processor
 
 import com.squareup.kotlinpoet.metadata.*
+import kotlinx.metadata.KmClassifier
 
 /**
  * This class is responsible for validating Struct classes and processing Kotlin metadata.
@@ -61,4 +62,21 @@ internal class ClassParser {
         }?.let { msg -> throw ProcessingException(msg, element) }
     }
 
+    private fun KotlinElement.toDeclaredStruct(): StructDef =
+        StructDef(
+            klass.name,
+            klass.extractFields(),
+            element
+        )
+
+    private fun ImmutableKmClass.extractFields(): List<StructDef.Field> =
+        constructors.first()
+            .valueParameters.map {
+                val typeName: QualifiedName = (it.type!!.classifier as KmClassifier.Class).name
+
+                when {
+                    typeName.isPrimitive -> StructDef.Field.Primitive(it.name, typeName)
+                    else -> StructDef.Field.Object(it.name, typeName)
+                }
+            }
 }
