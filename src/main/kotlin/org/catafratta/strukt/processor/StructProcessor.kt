@@ -1,9 +1,7 @@
 package org.catafratta.strukt.processor
 
 import com.google.auto.service.AutoService
-import com.squareup.kotlinpoet.metadata.ImmutableKmClass
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
-import com.squareup.kotlinpoet.metadata.toImmutableKmClass
 import org.catafratta.strukt.Struct
 import javax.annotation.processing.Processor
 import javax.annotation.processing.RoundEnvironment
@@ -35,8 +33,7 @@ internal class StructProcessor : KaptProcessor() {
     private fun processStructs(roundEnv: RoundEnvironment) {
         roundEnv
             .getElementsAnnotatedWith(Struct::class.java) // Find all @Struct classes
-            .map { it.toKotlinElement() }                 // Parse Kotlin metadata
-            .let { ClassParser().parse(it) }              // Extract struct info
+            .map { ClassParser().parse(it) }              // Extract struct info
             .also { DependencyChecker().check(it) }       // Check dependencies
             .map { CodeGenerator(it).generate() }         // Generate source filed
             .forEach {
@@ -45,13 +42,6 @@ internal class StructProcessor : KaptProcessor() {
                 outFile.writeText(it.code)
             }
     }
-
-    private fun Element.toKotlinElement(): KotlinElement = KotlinElement(this, toImmutableKmClass())
-
-    private fun Element.toImmutableKmClass(): ImmutableKmClass =
-        getAnnotation(Metadata::class.java)
-            .let { it ?: throw ProcessingException("$this is not a Kotlin class", this) }
-            .toImmutableKmClass()
 
     private fun failWith(e: ProcessingException) = failWithMessage(e.message, e.element)
 

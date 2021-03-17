@@ -35,6 +35,8 @@ dependencies {
 
     testImplementation("junit:junit:4.13")
     testImplementation("com.github.tschuchortdev:kotlin-compile-testing:1.3.6")
+    testImplementation("org.mockito:mockito-core:2.+")
+    testImplementation("com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.+")
 }
 
 tasks.test {

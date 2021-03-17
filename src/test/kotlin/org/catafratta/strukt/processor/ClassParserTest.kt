@@ -11,14 +11,14 @@ import org.junit.Test
 class ClassParserTest {
     @Test
     fun testValid() {
-        val classes = listOf(
-            KotlinElement(MockElement(), buildKlass {
+        val elements = listOf(
+            buildKlass {
                 name = "test/StructA"
                 flags = flagsOf(Flag.Class.IS_CLASS)
 
                 addConstructor(Flag.Constructor.IS_PRIMARY) {}
-            }),
-            KotlinElement(MockElement(), buildKlass {
+            },
+            buildKlass {
                 name = "test/StructB"
                 flags = flagsOf(Flag.Class.IS_CLASS)
 
@@ -27,11 +27,11 @@ class ClassParserTest {
                     addParameter("b") { type = simpleType("test/SomeType2") }
                     addParameter("c") { type = simpleType("test/SomeType3") }
                 }
-            })
-        )
+            }
+        ).map { MockElement(annotations = listOf(it.toMetadata())) }
 
         val expected = listOf(
-            StructDef("test/StructA", emptyList(), classes[0].element),
+            StructDef("test/StructA", emptyList(), elements[0]),
             StructDef(
                 "test/StructB",
                 listOf(
@@ -39,27 +39,25 @@ class ClassParserTest {
                     StructDef.Field.Object("b", "test/SomeType2"),
                     StructDef.Field.Object("c", "test/SomeType3"),
                 ),
-                classes[1].element
+                elements[1]
             ),
         )
 
-        val result = ClassParser().parse(classes)
+        val result = elements.map { ClassParser().parse(it) }
 
         Assert.assertArrayEquals(expected.toTypedArray(), result.toTypedArray())
     }
 
     @Test(expected = ProcessingException::class)
     fun testMultipleConstructors() {
-        val classes = listOf(
-            KotlinElement(MockElement(), buildKlass {
-                name = "test/StructA"
-                flags = flagsOf(Flag.Class.IS_CLASS)
-                addConstructor {}
-                addConstructor {}
-            })
-        )
+        val element = buildKlass {
+            name = "test/StructA"
+            flags = flagsOf(Flag.Class.IS_CLASS)
+            addConstructor {}
+            addConstructor {}
+        }.toMetadata().let { MockElement(annotations = listOf(it)) }
 
-        ClassParser().parse(classes)
+        ClassParser().parse(element)
     }
 
     @Test
@@ -79,13 +77,13 @@ class ClassParserTest {
 
         unsupportedFlags.forEachIndexed { i, f ->
             try {
-                val input = KotlinElement(MockElement(), buildKlass {
+                val element = buildKlass {
                     name = "test/BadStruct$i"
                     flags = flagsOf(*f)
                     addConstructor {}
-                })
+                }.toMetadata().let { MockElement(annotations = listOf(it)) }
 
-                ClassParser().parse(listOf(input))
+                ClassParser().parse(element)
 
                 Assert.fail("Invalid class not detected at index $i")
             } catch (e: ProcessingException) {
@@ -96,41 +94,38 @@ class ClassParserTest {
 
     @Test(expected = ProcessingException::class)
     fun testVariadicFields() {
-        val classes = listOf(
-            KotlinElement(MockElement(), buildKlass {
-                name = "test/VariadicStruct"
-                flags = flagsOf(Flag.Class.IS_CLASS)
+        val element = buildKlass {
+            name = "test/VariadicStruct"
+            flags = flagsOf(Flag.Class.IS_CLASS)
 
-                addConstructor {
-                    addParameter("badField") {
-                        varargElementType = simpleType("test/SomeType")
-                    }
+            addConstructor {
+                addParameter("badField") {
+                    type = simpleType("test/SomeArrayType")
+                    varargElementType = simpleType("test/SomeType")
                 }
-            })
-        )
+            }
+        }.toMetadata().let { MockElement(annotations = listOf(it)) }
 
-        ClassParser().parse(classes)
+        ClassParser().parse(element)
     }
 
     @Test(expected = ProcessingException::class)
     fun testGenericFields() {
-        val classes = listOf(
-            KotlinElement(MockElement(), buildKlass {
-                name = "test/VariadicStruct"
-                flags = flagsOf(Flag.Class.IS_CLASS)
+        val element = buildKlass {
+            name = "test/VariadicStruct"
+            flags = flagsOf(Flag.Class.IS_CLASS)
 
-                addConstructor {
-                    addParameter("badField") {
-                        type = KmType(0).apply {
-                            classifier = KmClassifier.Class("test/SomeGenericType")
-                            arguments += KmTypeProjection(KmVariance.INVARIANT, simpleType("test/SomeTypeParameter"))
-                        }
+            addConstructor {
+                addParameter("badField") {
+                    type = KmType(0).apply {
+                        classifier = KmClassifier.Class("test/SomeGenericType")
+                        arguments += KmTypeProjection(KmVariance.INVARIANT, simpleType("test/SomeTypeParameter"))
                     }
                 }
-            })
-        )
+            }
+        }.toMetadata().let { MockElement(annotations = listOf(it)) }
 
-        ClassParser().parse(classes)
+        ClassParser().parse(element)
     }
 
     companion object {
@@ -158,5 +153,7 @@ class ClassParserTest {
         private fun simpleType(name: String): KmType {
             return KmType(0).apply { classifier = KmClassifier.Class(name) }
         }
+
+        private fun ImmutableKmClass.toMetadata(): Metadata = mockClassMetadata(this)
     }
 }

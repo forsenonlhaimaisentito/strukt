@@ -2,24 +2,26 @@ package org.catafratta.strukt.processor
 
 import com.squareup.kotlinpoet.metadata.*
 import kotlinx.metadata.KmClassifier
+import javax.lang.model.element.Element
 
-/**
- * This class is responsible for validating Struct classes and processing Kotlin metadata.
- */
 @KotlinPoetMetadataPreview
 internal class ClassParser {
     /**
-     * Verifies that all the classes are valid and then transforms them into [StructDef]s.
+     * Verifies that the class is valid and then transforms it into a [StructDef].
      */
-    fun parse(classes: List<KotlinElement>): List<StructDef> {
-        return classes
-            .filterNot { it.klass.isAnnotation }          // Exclude annotations
-            .onEach { it.verifyInputClass() }             // Validate classes
-            .map { it.toDeclaredStruct() }                // Extract struct info
+    fun parse(element: Element): StructDef {
+        val kmClass = element.kotlinMetadata.toImmutableKmClass()
+        return parseClass(element, kmClass)
     }
 
-    private fun KotlinElement.verifyInputClass() {
-        klass.run {
+    private fun parseClass(element: Element, kmClass: ImmutableKmClass): StructDef {
+        verifyClass(element, kmClass)
+
+        return StructDef(kmClass.name, parseFields(element, kmClass), element)
+    }
+
+    private fun verifyClass(element: Element, kmClass: ImmutableKmClass) {
+        kmClass.run {
             when {
                 isSealed -> "Sealed classes are not supported"
                 isEnum || isEnumEntry -> "Enum classes are not supported"
@@ -30,7 +32,7 @@ internal class ClassParser {
                 isInline -> "Inline classes are not supported"
                 isExternal -> "External classes are not supported"
                 isExpect -> "Expect classes are not supported"
-                !isClass -> "${klass.name} is not a class"
+                !isClass -> "${kmClass.name} is not a class"
 
                 isPrivate || isProtected -> "Struct classes must be public or internal"
 
@@ -41,11 +43,11 @@ internal class ClassParser {
             }
         }?.let { msg -> throw ProcessingException(msg, element) }
 
-        verifyConstructor()
+        verifyConstructor(element, kmClass)
     }
 
-    private fun KotlinElement.verifyConstructor() {
-        val ctor = klass.constructors.first()
+    private fun verifyConstructor(element: Element, kmClass: ImmutableKmClass) {
+        val ctor = kmClass.constructors.first()
 
         ctor.run {
             when {
@@ -62,21 +64,24 @@ internal class ClassParser {
         }?.let { msg -> throw ProcessingException(msg, element) }
     }
 
-    private fun KotlinElement.toDeclaredStruct(): StructDef =
-        StructDef(
-            klass.name,
-            klass.extractFields(),
-            element
-        )
+    private fun parseFields(element: Element, kmClass: ImmutableKmClass): List<StructDef.Field> {
+        val ctor = kmClass.constructors.first()
 
-    private fun ImmutableKmClass.extractFields(): List<StructDef.Field> =
-        constructors.first()
-            .valueParameters.map {
-                val typeName: QualifiedName = (it.type!!.classifier as KmClassifier.Class).name
+        return ctor.valueParameters.map { parseField(it) }
+    }
 
-                when {
-                    typeName.isPrimitive -> StructDef.Field.Primitive(it.name, typeName)
-                    else -> StructDef.Field.Object(it.name, typeName)
-                }
-            }
+    private fun parseField(param: ImmutableKmValueParameter): StructDef.Field {
+        val typeName: QualifiedName = (param.type!!.classifier as KmClassifier.Class).name
+
+        return when {
+            typeName.isPrimitive -> StructDef.Field.Primitive(param.name, typeName)
+            else -> StructDef.Field.Object(param.name, typeName)
+        }
+    }
+
+    companion object {
+        private val Element.kotlinMetadata: Metadata
+            get() = getAnnotation(Metadata::class.java)
+                ?: throw ProcessingException("$this is not a Kotlin class", this)
+    }
 }

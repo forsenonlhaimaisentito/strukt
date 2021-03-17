@@ -3,13 +3,16 @@ package org.catafratta.strukt.processor
 import javax.lang.model.element.*
 import javax.lang.model.type.TypeMirror
 
-class MockElement : Element {
+class MockElement(
+    private val annotations: List<Annotation>? = null
+) : Element {
     override fun getAnnotationMirrors(): MutableList<out AnnotationMirror> {
         throw NotImplementedError()
     }
 
-    override fun <A : Annotation?> getAnnotation(annotationType: Class<A>?): A {
-        throw NotImplementedError()
+    @Suppress("UNCHECKED_CAST")
+    override fun <A : Annotation?> getAnnotation(annotationType: Class<A>): A? {
+        return checkNotNull(annotations).firstOrNull { annotationType.isInstance(it) } as A?
     }
 
     override fun <A : Annotation?> getAnnotationsByType(annotationType: Class<A>?): Array<A> {
@@ -43,5 +46,4 @@ class MockElement : Element {
     override fun <R : Any?, P : Any?> accept(v: ElementVisitor<R, P>?, p: P): R {
         throw NotImplementedError()
     }
-
 }
