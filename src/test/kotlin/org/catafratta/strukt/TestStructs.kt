@@ -1,13 +1,14 @@
 package org.catafratta.strukt
 
 import org.catafratta.strukt.processor.StructDef
-import org.catafratta.strukt.processor.MockElement
+import org.catafratta.strukt.processor.mockElement
 import org.catafratta.strukt.runtime.Codec
 import org.catafratta.strukt.runtime.binarySink
 import org.catafratta.strukt.runtime.binarySource
 import org.junit.Assert
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import javax.lang.model.element.ElementKind
 
 
 internal object TestStructs {
@@ -78,7 +79,7 @@ data class AllPrimitivesStruct(
                 StructDef.Field.Primitive("float", "kotlin/Float"),
                 StructDef.Field.Primitive("double", "kotlin/Double"),
             ),
-            MockElement()
+            mockElement(ElementKind.CLASS) {}
         )
     }
 }
@@ -108,7 +109,7 @@ data class SimpleStruct(val field: Int) : TestStruct {
                 listOf(
                     StructDef.Field.Object("field", SimpleStruct.PARSED.name)
                 ),
-                MockElement()
+                mockElement(ElementKind.CLASS) {}
             )
         }
     }
@@ -119,7 +120,7 @@ data class SimpleStruct(val field: Int) : TestStruct {
             listOf(
                 StructDef.Field.Primitive("field", "kotlin/Int")
             ),
-            MockElement()
+            mockElement(ElementKind.CLASS) {}
         )
     }
 }
@@ -146,7 +147,7 @@ data class NestedStruct(
                 StructDef.Field.Primitive("field", "kotlin/Long"),
                 StructDef.Field.Object("child", SimpleStruct.PARSED.name)
             ),
-            MockElement()
+            mockElement(ElementKind.CLASS) {}
         )
     }
 }

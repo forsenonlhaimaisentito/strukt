@@ -5,6 +5,7 @@ import com.nhaarman.mockitokotlin2.mock
 import com.squareup.kotlinpoet.metadata.ImmutableKmClass
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import kotlinx.metadata.*
+import kotlinx.metadata.jvm.JvmFieldSignature
 import kotlinx.metadata.jvm.KotlinClassMetadata
 import kotlinx.metadata.jvm.fieldSignature
 
@@ -77,6 +78,12 @@ internal class KmClassBuilder(var name: ClassName) {
         valueParameters += param
 
         return prop
+    }
+
+    fun KmProperty.withBackingField(): KmProperty = apply {
+        val typeName = (returnType.classifier as KmClassifier.Class).name
+        // This is inaccurate for primitive types, but we don't need the accuracy right now
+        fieldSignature = JvmFieldSignature(name, "L${typeName.replace('.', '/')};")
     }
 
     fun classType(name: ClassName, flags: Flags = 0): KmType = KmType(flags).apply {

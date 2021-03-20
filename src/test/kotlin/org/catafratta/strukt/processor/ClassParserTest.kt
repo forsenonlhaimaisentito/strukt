@@ -4,26 +4,40 @@ import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import kotlinx.metadata.Flag
 import org.junit.Assert
 import org.junit.Test
+import javax.lang.model.element.ElementKind
 
 @KotlinPoetMetadataPreview
 class ClassParserTest {
     @Test
     fun testValid() {
         val elements = listOf(
-            buildKmClass("test/StructA") {
-                addFlags(Flag.Class.IS_CLASS)
-                addPrimaryConstructor {}
-            },
-            buildKmClass("test/StructB") {
-                addFlags(Flag.Class.IS_CLASS)
+            mockElement(ElementKind.CLASS) {
+                annotations +=
+                    buildKmClass("test/StructA") {
+                        addFlags(Flag.Class.IS_CLASS)
+                        addPrimaryConstructor {}
+                    }.toMetadata()
 
-                addPrimaryConstructor {
-                    addPropertyParam("a") { type = classType("test/SomeType1") }
-                    addPropertyParam("b") { type = classType("test/SomeType2") }
-                    addPropertyParam("c") { type = classType("test/SomeType3") }
-                }
-            }
-        ).map { MockElement(annotations = listOf(it.toMetadata())) }
+                +mockElement(ElementKind.CONSTRUCTOR) {}
+            },
+            mockElement(ElementKind.CLASS) {
+                annotations +=
+                    buildKmClass("test/StructB") {
+                        addFlags(Flag.Class.IS_CLASS)
+
+                        addPrimaryConstructor {
+                            addPropertyParam("a") { type = classType("test/SomeType1") }.withBackingField()
+                            addPropertyParam("b") { type = classType("test/SomeType2") }.withBackingField()
+                            addPropertyParam("c") { type = classType("test/SomeType3") }.withBackingField()
+                        }
+                    }.toMetadata()
+
+                +mockElement(ElementKind.CONSTRUCTOR) {}
+                +mockElement(ElementKind.FIELD) { simpleName = "a" }
+                +mockElement(ElementKind.FIELD) { simpleName = "b" }
+                +mockElement(ElementKind.FIELD) { simpleName = "c" }
+            },
+        )
 
         val expected = listOf(
             StructDef("test/StructA", emptyList(), elements[0]),
@@ -45,11 +59,17 @@ class ClassParserTest {
 
     @Test(expected = ProcessingException::class)
     fun testMultipleConstructors() {
-        val element = buildKmClass("test/StructA") {
-            addFlags(Flag.Class.IS_CLASS)
-            addPrimaryConstructor {}
-            addConstructor {}
-        }.toMetadata().let { MockElement(annotations = listOf(it)) }
+        val element = mockElement(ElementKind.CLASS) {
+            annotations +=
+                buildKmClass("test/StructA") {
+                    addFlags(Flag.Class.IS_CLASS)
+                    addPrimaryConstructor {}
+                    addConstructor {}
+                }.toMetadata()
+
+            +mockElement(ElementKind.CONSTRUCTOR) {}
+            +mockElement(ElementKind.CONSTRUCTOR) {}
+        }
 
         ClassParser().parse(element)
     }
@@ -71,10 +91,14 @@ class ClassParserTest {
 
         unsupportedFlags.forEachIndexed { i, f ->
             try {
-                val element = buildKmClass("test/BadStruct$i") {
-                    addFlags(*f)
-                    addConstructor {}
-                }.toMetadata().let { MockElement(annotations = listOf(it)) }
+                val element = mockElement(ElementKind.CLASS) {
+                    annotations +=
+                        buildKmClass("test/BadStruct$i") {
+                            addFlags(*f)
+                            addConstructor {}
+                        }.toMetadata()
+                    +mockElement(ElementKind.CONSTRUCTOR) {}
+                }
 
                 ClassParser().parse(element)
 
@@ -87,33 +111,45 @@ class ClassParserTest {
 
     @Test(expected = ProcessingException::class)
     fun testVariadicFields() {
-        val element = buildKmClass("test/VariadicStruct") {
-            addFlags(Flag.Class.IS_CLASS)
+        val element = mockElement(ElementKind.CLASS) {
+            annotations +=
+                buildKmClass("test/VariadicStruct") {
+                    addFlags(Flag.Class.IS_CLASS)
 
-            addPrimaryConstructor {
-                addPropertyParam("badField") {
-                    type = classType("test/SomeArrayType")
-                    varargElementType = classType("test/SomeType")
-                }
-            }
-        }.toMetadata().let { MockElement(annotations = listOf(it)) }
+                    addPrimaryConstructor {
+                        addPropertyParam("badField") {
+                            type = classType("test/SomeArrayType")
+                            varargElementType = classType("test/SomeType")
+                        }.withBackingField()
+                    }
+                }.toMetadata()
+
+            +mockElement(ElementKind.CONSTRUCTOR) {}
+            +mockElement(ElementKind.FIELD) { simpleName = "badField" }
+        }
 
         ClassParser().parse(element)
     }
 
     @Test(expected = ProcessingException::class)
     fun testGenericFields() {
-        val element = buildKmClass("test/VariadicStruct") {
-            addFlags(Flag.Class.IS_CLASS)
+        val element = mockElement(ElementKind.CLASS) {
+            annotations +=
+                buildKmClass("test/VariadicStruct") {
+                    addFlags(Flag.Class.IS_CLASS)
 
-            addPrimaryConstructor {
-                addPropertyParam("badField") {
-                    type = classType("test/SomeGenericType") withArguments {
-                        invariant(classType("test/SomeTypeParameter"))
+                    addPrimaryConstructor {
+                        addPropertyParam("badField") {
+                            type = classType("test/SomeGenericType") withArguments {
+                                invariant(classType("test/SomeTypeParameter"))
+                            }
+                        }.withBackingField()
                     }
-                }
-            }
-        }.toMetadata().let { MockElement(annotations = listOf(it)) }
+                }.toMetadata()
+
+            +mockElement(ElementKind.CONSTRUCTOR) {}
+            +mockElement(ElementKind.FIELD) { simpleName = "badField" }
+        }
 
         ClassParser().parse(element)
     }
