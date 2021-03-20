@@ -1,9 +1,7 @@
 package org.catafratta.strukt.processor
 
-import com.squareup.kotlinpoet.metadata.ImmutableKmClass
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
-import com.squareup.kotlinpoet.metadata.toImmutable
-import kotlinx.metadata.*
+import kotlinx.metadata.Flag
 import org.junit.Assert
 import org.junit.Test
 
@@ -12,20 +10,17 @@ class ClassParserTest {
     @Test
     fun testValid() {
         val elements = listOf(
-            buildKlass {
-                name = "test/StructA"
-                flags = flagsOf(Flag.Class.IS_CLASS)
-
-                addConstructor(Flag.Constructor.IS_PRIMARY) {}
+            buildKmClass("test/StructA") {
+                addFlags(Flag.Class.IS_CLASS)
+                addPrimaryConstructor {}
             },
-            buildKlass {
-                name = "test/StructB"
-                flags = flagsOf(Flag.Class.IS_CLASS)
+            buildKmClass("test/StructB") {
+                addFlags(Flag.Class.IS_CLASS)
 
-                addConstructor(Flag.Constructor.IS_PRIMARY) {
-                    addParameter("a") { type = simpleType("test/SomeType1") }
-                    addParameter("b") { type = simpleType("test/SomeType2") }
-                    addParameter("c") { type = simpleType("test/SomeType3") }
+                addPrimaryConstructor {
+                    addPropertyParam("a") { type = classType("test/SomeType1") }
+                    addPropertyParam("b") { type = classType("test/SomeType2") }
+                    addPropertyParam("c") { type = classType("test/SomeType3") }
                 }
             }
         ).map { MockElement(annotations = listOf(it.toMetadata())) }
@@ -50,10 +45,9 @@ class ClassParserTest {
 
     @Test(expected = ProcessingException::class)
     fun testMultipleConstructors() {
-        val element = buildKlass {
-            name = "test/StructA"
-            flags = flagsOf(Flag.Class.IS_CLASS)
-            addConstructor {}
+        val element = buildKmClass("test/StructA") {
+            addFlags(Flag.Class.IS_CLASS)
+            addPrimaryConstructor {}
             addConstructor {}
         }.toMetadata().let { MockElement(annotations = listOf(it)) }
 
@@ -77,9 +71,8 @@ class ClassParserTest {
 
         unsupportedFlags.forEachIndexed { i, f ->
             try {
-                val element = buildKlass {
-                    name = "test/BadStruct$i"
-                    flags = flagsOf(*f)
+                val element = buildKmClass("test/BadStruct$i") {
+                    addFlags(*f)
                     addConstructor {}
                 }.toMetadata().let { MockElement(annotations = listOf(it)) }
 
@@ -94,14 +87,13 @@ class ClassParserTest {
 
     @Test(expected = ProcessingException::class)
     fun testVariadicFields() {
-        val element = buildKlass {
-            name = "test/VariadicStruct"
-            flags = flagsOf(Flag.Class.IS_CLASS)
+        val element = buildKmClass("test/VariadicStruct") {
+            addFlags(Flag.Class.IS_CLASS)
 
-            addConstructor {
-                addParameter("badField") {
-                    type = simpleType("test/SomeArrayType")
-                    varargElementType = simpleType("test/SomeType")
+            addPrimaryConstructor {
+                addPropertyParam("badField") {
+                    type = classType("test/SomeArrayType")
+                    varargElementType = classType("test/SomeType")
                 }
             }
         }.toMetadata().let { MockElement(annotations = listOf(it)) }
@@ -111,49 +103,18 @@ class ClassParserTest {
 
     @Test(expected = ProcessingException::class)
     fun testGenericFields() {
-        val element = buildKlass {
-            name = "test/VariadicStruct"
-            flags = flagsOf(Flag.Class.IS_CLASS)
+        val element = buildKmClass("test/VariadicStruct") {
+            addFlags(Flag.Class.IS_CLASS)
 
-            addConstructor {
-                addParameter("badField") {
-                    type = KmType(0).apply {
-                        classifier = KmClassifier.Class("test/SomeGenericType")
-                        arguments += KmTypeProjection(KmVariance.INVARIANT, simpleType("test/SomeTypeParameter"))
+            addPrimaryConstructor {
+                addPropertyParam("badField") {
+                    type = classType("test/SomeGenericType") withArguments {
+                        invariant(classType("test/SomeTypeParameter"))
                     }
                 }
             }
         }.toMetadata().let { MockElement(annotations = listOf(it)) }
 
         ClassParser().parse(element)
-    }
-
-    companion object {
-        @DslMarker
-        private annotation class KlassDsl
-
-        @KlassDsl
-        private inline fun buildKlass(init: KmClass.() -> Unit): ImmutableKmClass =
-            KmClass().apply(init).toImmutable()
-
-        @KlassDsl
-        private inline fun KmClass.addConstructor(vararg flags: Flag, init: KmConstructor.() -> Unit) {
-            constructors += KmConstructor(flagsOf(*flags)).apply(init)
-        }
-
-        @KlassDsl
-        private inline fun KmConstructor.addParameter(
-            name: String,
-            vararg flags: Flag,
-            init: KmValueParameter.() -> Unit
-        ) {
-            valueParameters += KmValueParameter(flagsOf(*flags), name).apply(init)
-        }
-
-        private fun simpleType(name: String): KmType {
-            return KmType(0).apply { classifier = KmClassifier.Class(name) }
-        }
-
-        private fun ImmutableKmClass.toMetadata(): Metadata = mockClassMetadata(this)
     }
 }
