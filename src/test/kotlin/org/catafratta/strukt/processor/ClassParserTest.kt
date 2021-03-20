@@ -153,4 +153,62 @@ class ClassParserTest {
 
         ClassParser().parse(element)
     }
+
+    @Test(expected = ProcessingException::class)
+    fun testNoProperty() {
+        val element = mockElement(ElementKind.CLASS) {
+            annotations +=
+                buildKmClass("test/NoPropertyStruct") {
+                    addFlags(Flag.Class.IS_CLASS)
+
+                    addPrimaryConstructor {
+                        addParameter("unbacked") { type = classType("kotlin/Int") }
+                    }
+                }.toMetadata()
+
+            +mockElement(ElementKind.CONSTRUCTOR) {}
+            +mockElement(ElementKind.FIELD) { simpleName = "unbacked" }
+        }
+
+        ClassParser().parse(element)
+    }
+
+    @Test(expected = ProcessingException::class)
+    fun testBadPropertyType() {
+        val element = mockElement(ElementKind.CLASS) {
+            annotations +=
+                buildKmClass("test/BadPropertyStruct") {
+                    addFlags(Flag.Class.IS_CLASS)
+
+                    addPrimaryConstructor {
+                        addParameter("mismatch") { type = classType("kotlin/Int") }
+                    }
+
+                    addProperty("mismatch") { returnType = classType("kotlin/Long") }
+                }.toMetadata()
+
+            +mockElement(ElementKind.CONSTRUCTOR) {}
+            +mockElement(ElementKind.FIELD) { simpleName = "mismatch" }
+        }
+
+        ClassParser().parse(element)
+    }
+
+    @Test(expected = ProcessingException::class)
+    fun testNoBackingField() {
+        val element = mockElement(ElementKind.CLASS) {
+            annotations +=
+                buildKmClass("test/NoFieldStruct") {
+                    addFlags(Flag.Class.IS_CLASS)
+
+                    addPrimaryConstructor {
+                        addPropertyParam("unbacked") { type = classType("kotlin/Int") }
+                    }
+                }.toMetadata()
+
+            +mockElement(ElementKind.CONSTRUCTOR) {}
+        }
+
+        ClassParser().parse(element)
+    }
 }

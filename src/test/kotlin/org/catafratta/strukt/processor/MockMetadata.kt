@@ -70,6 +70,11 @@ internal class KmClassBuilder(var name: ClassName) {
     }
 
     @KmClassBuilderDsl
+    inline fun addProperty(name: String, init: KmProperty.() -> Unit) {
+        kmClass.properties += KmProperty(0, name, 0, 0).apply(init)
+    }
+
+    @KmClassBuilderDsl
     inline fun KmConstructor.addPropertyParam(name: String, init: KmValueParameter.() -> Unit): KmProperty {
         val param = KmValueParameter(0, name).apply(init)
         val prop = KmProperty(0, name, 0, 0).apply { returnType = param.type!! }

@@ -48,6 +48,7 @@ internal class ClassParser {
 
     private fun verifyConstructor(element: Element, kmClass: ImmutableKmClass) {
         val ctor = kmClass.constructors.first()
+        val properties = kmClass.properties.map { it.name to it }.toMap()
 
         ctor.run {
             when {
@@ -60,7 +61,20 @@ internal class ClassParser {
                     "Generic constructor arguments are not supported"
 
                 else -> null
+            }?.let { return@run it }
+
+            valueParameters.forEach {
+                val property = properties[it.name]
+                    ?: return@run "Constructor argument `${it.name}` must correspond to a property"
+
+                if (property.returnType != it.type)
+                    return@run "Property ${kmClass.name}.${it.name}'s type doesn't match its constructor argument's type"
+
+                if (property.fieldSignature == null)
+                    return@run "Property ${kmClass.name}.${it.name} doesn't have a backing field"
             }
+
+            null
         }?.let { msg -> throw ProcessingException(msg, element) }
     }
 
