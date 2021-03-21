@@ -18,6 +18,7 @@ internal object TestStructs {
         SimpleStruct.PARSED,
         SimpleStruct.MemberStruct.PARSED,
         NestedStruct.PARSED,
+        WeirdNameStruct.PARSED,
         AllPrimitiveArraysStruct.PARSED,
         ObjectArrayStruct.PARSED,
         NestedObjectArrayStruct.PARSED
@@ -158,6 +159,29 @@ data class NestedStruct(
     }
 }
 
+@Struct
+data class WeirdNameStruct(
+    val `weird name`: Int
+) : TestStruct {
+    override val encodedSize: Int = 4
+
+    override fun binaryRepresentation(order: ByteOrder): ByteBuffer {
+        return ByteBuffer.allocate(encodedSize)
+            .order(order)
+            .putInt(`weird name`)
+            .position(0)
+    }
+
+    companion object {
+        internal val PARSED = StructDef(
+            WeirdNameStruct::class.qualifiedName!!.replace('.', '/'),
+            listOf(
+                StructDef.Field.Primitive("weird name", "kotlin/Int")
+            ),
+            mockElement(ElementKind.CLASS) {}
+        )
+    }
+}
 
 @Struct
 data class AllPrimitiveArraysStruct(

@@ -72,6 +72,15 @@ class CodeGeneratorTest {
         testCodec(outerCodec, data)
     }
 
+    @Test
+    fun testWeirdName() {
+        val strukt = MockStrukt()
+        val codec = getCodecInstance<WeirdNameStruct>(strukt)
+
+        val data = WeirdNameStruct(1234)
+        testCodec(codec, data)
+    }
+
     private inline fun <reified T : Any> getCodecInstance(strukt: Strukt): Codec<T> {
         val codecClass = loadCompiledCodec(T::class)
         val ctor = codecClass.getDeclaredConstructor(Strukt::class.java)

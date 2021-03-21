@@ -115,10 +115,10 @@ internal class CodeGenerator(private val structDef: StructDef) {
 
     private fun CodeBlock.Builder.addWriteStatement(field: StructDef.Field) {
         when (field) {
-            is StructDef.Field.Primitive -> add("sink.write(${field.name})")
-            is StructDef.Field.Object -> add("strukt.write(${field.name}, sink)")
-            is StructDef.Field.PrimitiveArray -> add("${field.name}.forEach { sink.write(it) }")
-            is StructDef.Field.ObjectArray -> add("${field.name}.forEach { strukt.write(it, sink) }")
+            is StructDef.Field.Primitive -> add("sink.write(%N)", field.name)
+            is StructDef.Field.Object -> add("strukt.write(%N, sink)", field.name)
+            is StructDef.Field.PrimitiveArray -> add("%N.forEach { sink.write(it) }", field.name)
+            is StructDef.Field.ObjectArray -> add("%N.forEach { strukt.write(it, sink) }", field.name)
         }
     }
 
