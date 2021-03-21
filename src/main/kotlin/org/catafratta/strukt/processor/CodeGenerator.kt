@@ -69,8 +69,22 @@ internal class CodeGenerator(private val structDef: StructDef) {
 
     private fun readStatementFor(field: StructDef.Field) = field.run {
         when (field) {
-            is StructDef.Field.Primitive -> "source.read${typeName.classNames.last()}()"
+            is StructDef.Field.Primitive -> primitiveReadStatement(typeName)
+            is StructDef.Field.PrimitiveArray ->
+                typeName.classPart +
+                        " (${sizeExpressionFor(field.sizeModifier)}) " +
+                        "{ ${primitiveReadStatement(field.itemTypeName)} }"
             is StructDef.Field.Object -> "strukt.read(source)"
+        }
+    }
+
+    private fun primitiveReadStatement(typeName: QualifiedName): String {
+        return "source.read${typeName.classPart}()"
+    }
+
+    private fun sizeExpressionFor(sizeModifier: StructDef.Field.SizeModifier): String {
+        return when (sizeModifier) {
+            is StructDef.Field.SizeModifier.Fixed -> "${sizeModifier.size}"
         }
     }
 
@@ -94,6 +108,7 @@ internal class CodeGenerator(private val structDef: StructDef) {
     private fun writeStatementFor(field: StructDef.Field) = field.run {
         when (field) {
             is StructDef.Field.Primitive -> "sink.write($name)"
+            is StructDef.Field.PrimitiveArray -> "$name.forEach { sink.write(it) }"
             is StructDef.Field.Object -> "strukt.write($name, sink)"
         }
     }

@@ -39,5 +39,26 @@ internal data class StructDef(
             override val name: String,
             override val typeName: QualifiedName
         ) : Field()
+
+        /**
+         * A struct field of primitive array type.
+         *
+         * @property sizeModifier The size modifier for this field.
+         * @property itemTypeName The type name of the array items.
+         */
+        data class PrimitiveArray(
+            override val name: String,
+            override val typeName: QualifiedName,
+            val sizeModifier: SizeModifier
+        ) : Field() {
+            val itemTypeName: QualifiedName = typeName.primitiveArrayItemType
+        }
+
+        /**
+         * Represents an array field size declaration.
+         */
+        sealed class SizeModifier {
+            data class Fixed(val size: Int) : SizeModifier()
+        }
     }
 }

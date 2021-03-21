@@ -2,6 +2,7 @@ package org.catafratta.strukt.processor
 
 import com.squareup.kotlinpoet.metadata.*
 import kotlinx.metadata.KmClassifier
+import org.catafratta.strukt.FixedSize
 import javax.lang.model.element.Element
 
 @KotlinPoetMetadataPreview
@@ -80,17 +81,38 @@ internal class ClassParser {
 
     private fun parseFields(element: Element, kmClass: ImmutableKmClass): List<StructDef.Field> {
         val ctor = kmClass.constructors.first()
+        val properties = kmClass.properties.map { it.name to it }.toMap()
 
-        return ctor.valueParameters.map { parseField(it) }
+        return ctor.valueParameters.map { param ->
+            // Guaranteed existing by verifyConstructor()
+            val fieldName = properties.getValue(param.name).fieldSignature!!.name
+            val fieldElement = element.enclosedElements.first {
+                it.kind.isField && it.simpleName.contentEquals(fieldName)
+            }
+
+            parseField(fieldElement, param)
+        }
     }
 
-    private fun parseField(param: ImmutableKmValueParameter): StructDef.Field {
+    private fun parseField(fieldElement: Element, param: ImmutableKmValueParameter): StructDef.Field {
         val typeName: QualifiedName = (param.type!!.classifier as KmClassifier.Class).name
 
         return when {
             typeName.isPrimitive -> StructDef.Field.Primitive(param.name, typeName)
+            typeName.isPrimitiveArray ->
+                StructDef.Field.PrimitiveArray(param.name, typeName, findSizeModifier(fieldElement))
             else -> StructDef.Field.Object(param.name, typeName)
         }
+    }
+
+    private fun findSizeModifier(fieldElement: Element): StructDef.Field.SizeModifier {
+        fieldElement.getAnnotation(FixedSize::class.java)?.let {
+            if (it.size < 0) throw ProcessingException("Array size must be non-negative", fieldElement)
+
+            return StructDef.Field.SizeModifier.Fixed(it.size)
+        }
+
+        throw ProcessingException("A size modifier is required on array types", fieldElement)
     }
 
     companion object {

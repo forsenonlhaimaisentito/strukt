@@ -51,6 +51,15 @@ class CodeGeneratorTest {
         testCodec(outerCodec, data)
     }
 
+    @Test
+    fun testPrimitiveArrays() {
+        val strukt = MockStrukt()
+        val codec = getCodecInstance<AllPrimitiveArraysStruct>(strukt)
+
+        val data = AllPrimitiveArraysStruct.getPopulatedInstance(0x31337)
+        testCodec(codec, data)
+    }
+
     private inline fun <reified T : Any> getCodecInstance(strukt: Strukt): Codec<T> {
         val codecClass = loadCompiledCodec(T::class)
         val ctor = codecClass.getDeclaredConstructor(Strukt::class.java)
