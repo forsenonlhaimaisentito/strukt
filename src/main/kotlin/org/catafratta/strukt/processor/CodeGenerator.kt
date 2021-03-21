@@ -60,26 +60,24 @@ internal class CodeGenerator(private val structDef: StructDef) {
     private fun buildReadCode() = CodeBlock.builder().apply {
         add("return %T(\n", structClass)
         indent()
-        structDef.fields.forEach { field ->
-            add("${field.name} = ${readStatementFor(field)},\n")
+        structDef.fields.forEach {
+            addReadStatement(it)
+            add(",\n")
         }
         unindent()
         add(")")
     }.build()
 
-    private fun readStatementFor(field: StructDef.Field) = field.run {
+    private fun CodeBlock.Builder.addReadStatement(field: StructDef.Field) {
         when (field) {
-            is StructDef.Field.Primitive -> primitiveReadStatement(typeName)
-            is StructDef.Field.PrimitiveArray ->
-                typeName.classPart +
-                        " (${sizeExpressionFor(field.sizeModifier)}) " +
-                        "{ ${primitiveReadStatement(field.itemTypeName)} }"
-            is StructDef.Field.Object -> "strukt.read(source)"
+            is StructDef.Field.Primitive -> add("source.read%L()", field.typeName.classPart)
+            is StructDef.Field.Object -> add("strukt.read(source)")
+            is StructDef.Field.PrimitiveArray -> {
+                add("%L(%L) { ", field.typeName.classPart, sizeExpressionFor(field.sizeModifier))
+                add("source.read%L()", field.itemTypeName.classPart)
+                add(" }")
+            }
         }
-    }
-
-    private fun primitiveReadStatement(typeName: QualifiedName): String {
-        return "source.read${typeName.classPart}()"
     }
 
     private fun sizeExpressionFor(sizeModifier: StructDef.Field.SizeModifier): String {
@@ -98,18 +96,19 @@ internal class CodeGenerator(private val structDef: StructDef) {
     private fun buildWriteCode() = CodeBlock.builder().apply {
         add("value.run {\n")
         indent()
-        structDef.fields.forEach { field ->
-            addStatement("${writeStatementFor(field)}\n")
+        structDef.fields.forEach {
+            addWriteStatement(it)
+            add("\n")
         }
         unindent()
         add("}")
     }.build()
 
-    private fun writeStatementFor(field: StructDef.Field) = field.run {
+    private fun CodeBlock.Builder.addWriteStatement(field: StructDef.Field) {
         when (field) {
-            is StructDef.Field.Primitive -> "sink.write($name)"
-            is StructDef.Field.PrimitiveArray -> "$name.forEach { sink.write(it) }"
-            is StructDef.Field.Object -> "strukt.write($name, sink)"
+            is StructDef.Field.Primitive -> add("sink.write(${field.name})")
+            is StructDef.Field.Object -> add("strukt.write(${field.name}, sink)")
+            is StructDef.Field.PrimitiveArray -> add("${field.name}.forEach { sink.write(it) }")
         }
     }
 
