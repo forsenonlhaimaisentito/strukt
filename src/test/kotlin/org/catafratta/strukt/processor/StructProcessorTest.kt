@@ -64,8 +64,13 @@ class StructProcessorTest {
             data class SomeStruct(
                 val someField: Int,
                 @FixedSize(1337)
-                val someArray: IntArray
+                val someArray: IntArray,
+                @FixedSize(10)
+                val otherArray: Array<SimpleStruct>
             )
+            
+            @Struct
+            data class SimpleStruct(val simpleField: Int)
             
             data class NotAStruct(
                 val someField: Int

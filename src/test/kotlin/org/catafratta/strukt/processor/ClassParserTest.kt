@@ -211,4 +211,43 @@ class ClassParserTest {
 
         ClassParser().parse(element)
     }
+
+    @Test
+    fun testObjectArrays() {
+        val element = mockElement(ElementKind.CLASS) {
+            annotations +=
+                buildKmClass("test/ObjectArraysStruct") {
+                    addFlags(Flag.Class.IS_CLASS)
+
+                    addPrimaryConstructor {
+                        addPropertyParam("someArray") {
+                            type = classType("kotlin/Array") withArguments { invariant(classType("test/ItemStruct")) }
+                        }.withBackingField()
+                    }
+                }.toMetadata()
+
+            +mockElement(ElementKind.CONSTRUCTOR) {}
+            +mockElement(ElementKind.FIELD) {
+                simpleName = "someArray"
+                annotations += mockFixedSize(1337)
+            }
+        }
+
+        val expected = StructDef(
+            "test/ObjectArraysStruct",
+            listOf(
+                StructDef.Field.ObjectArray(
+                    "someArray",
+                    "kotlin/Array",
+                    "test/ItemStruct",
+                    StructDef.Field.SizeModifier.Fixed(1337)
+                )
+            ),
+            element
+        )
+
+        val struct = ClassParser().parse(element)
+
+        Assert.assertEquals(expected, struct)
+    }
 }

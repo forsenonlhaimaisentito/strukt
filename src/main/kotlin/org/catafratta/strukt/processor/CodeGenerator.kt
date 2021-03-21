@@ -77,6 +77,15 @@ internal class CodeGenerator(private val structDef: StructDef) {
                 add("source.read%L()", field.itemTypeName.classPart)
                 add(" }")
             }
+            is StructDef.Field.ObjectArray -> {
+                add(
+                    "Array<%T>(%L) { ",
+                    ClassName(field.itemTypeName.packageName, field.itemTypeName.classNames),
+                    sizeExpressionFor(field.sizeModifier)
+                )
+                add("strukt.read(source)")
+                add(" }")
+            }
         }
     }
 
@@ -109,6 +118,7 @@ internal class CodeGenerator(private val structDef: StructDef) {
             is StructDef.Field.Primitive -> add("sink.write(${field.name})")
             is StructDef.Field.Object -> add("strukt.write(${field.name}, sink)")
             is StructDef.Field.PrimitiveArray -> add("${field.name}.forEach { sink.write(it) }")
+            is StructDef.Field.ObjectArray -> add("${field.name}.forEach { strukt.write(it, sink) }")
         }
     }
 

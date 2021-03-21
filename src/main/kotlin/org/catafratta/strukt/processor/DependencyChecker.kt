@@ -25,8 +25,9 @@ internal class DependencyChecker {
         dependencies = structDef.fields
             .filterNot { it.typeName.isPrimitive || it.typeName.isPrimitiveArray }
             .map {
-                available.findByName(it.typeName)
-                    ?: throw ProcessingException("${it.name}: ${it.typeName} is not a struct", structDef.source)
+                val typeName = if (it is StructDef.Field.ObjectArray) it.itemTypeName else it.typeName
+                available.findByName(typeName)
+                    ?: throw ProcessingException("${it.name}: $typeName is not a struct", structDef.source)
             }
     }
 

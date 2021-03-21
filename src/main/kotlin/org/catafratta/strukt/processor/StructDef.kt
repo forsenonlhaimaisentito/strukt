@@ -55,6 +55,19 @@ internal data class StructDef(
         }
 
         /**
+         * A struct field of generic array type.
+         *
+         * @property sizeModifier The size modifier for this field.
+         * @property itemTypeName The type name of the array items.
+         */
+        data class ObjectArray(
+            override val name: String,
+            override val typeName: QualifiedName,
+            val itemTypeName: QualifiedName,
+            val sizeModifier: SizeModifier
+        ) : Field()
+
+        /**
          * Represents an array field size declaration.
          */
         sealed class SizeModifier {

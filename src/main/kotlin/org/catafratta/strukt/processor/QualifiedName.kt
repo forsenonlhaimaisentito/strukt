@@ -41,3 +41,5 @@ internal val primitiveArrayTypes = setOf(
     "kotlin/IntArray", "kotlin/LongArray",
     "kotlin/FloatArray", "kotlin/DoubleArray"
 )
+
+internal val QualifiedName.isGenericArray: Boolean get() = this == "kotlin/Array"

@@ -58,9 +58,6 @@ internal class ClassParser {
                 valueParameters.any { it.varargElementType != null } ->
                     "Variadic constructor arguments are not supported"
 
-                valueParameters.any { it.type?.arguments?.isNotEmpty() ?: false } ->
-                    "Generic constructor arguments are not supported"
-
                 else -> null
             }?.let { return@run it }
 
@@ -73,6 +70,19 @@ internal class ClassParser {
 
                 if (property.fieldSignature == null)
                     return@run "Property ${kmClass.name}.${it.name} doesn't have a backing field"
+
+                val classifier = it.type!!.classClassifier
+
+                if (classifier.name.isGenericArray) {
+                    val itemTypeArg = it.type!!.arguments.first()
+                    val itemType = itemTypeArg.type ?: return@run "Array fields must declare a specific item type"
+
+                    if (itemType.qualifiedName.isPrimitiveArray || itemType.qualifiedName.isGenericArray)
+                        return@run "Multi-dimensional array fields are not supported"
+
+                } else if (it.type!!.arguments.isNotEmpty()) {
+                    return@run "Generic non-array constructor arguments are not supported"
+                }
             }
 
             null
@@ -95,12 +105,19 @@ internal class ClassParser {
     }
 
     private fun parseField(fieldElement: Element, param: ImmutableKmValueParameter): StructDef.Field {
-        val typeName: QualifiedName = (param.type!!.classifier as KmClassifier.Class).name
+        val typeName = param.type!!.qualifiedName
 
         return when {
             typeName.isPrimitive -> StructDef.Field.Primitive(param.name, typeName)
             typeName.isPrimitiveArray ->
                 StructDef.Field.PrimitiveArray(param.name, typeName, findSizeModifier(fieldElement))
+            typeName.isGenericArray ->
+                StructDef.Field.ObjectArray(
+                    param.name,
+                    typeName,
+                    param.type!!.arguments.first().type!!.qualifiedName, // Guaranteed existing by verifyConstructor()
+                    findSizeModifier(fieldElement)
+                )
             else -> StructDef.Field.Object(param.name, typeName)
         }
     }
@@ -119,5 +136,8 @@ internal class ClassParser {
         private val Element.kotlinMetadata: Metadata
             get() = getAnnotation(Metadata::class.java)
                 ?: throw ProcessingException("$this is not a Kotlin class", this)
+
+        private val ImmutableKmType.classClassifier: KmClassifier.Class inline get() = classifier as KmClassifier.Class
+        private val ImmutableKmType.qualifiedName: QualifiedName inline get() = classClassifier.name
     }
 }

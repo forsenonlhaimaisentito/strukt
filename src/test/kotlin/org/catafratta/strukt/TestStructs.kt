@@ -18,7 +18,9 @@ internal object TestStructs {
         SimpleStruct.PARSED,
         SimpleStruct.MemberStruct.PARSED,
         NestedStruct.PARSED,
-        AllPrimitiveArraysStruct.PARSED
+        AllPrimitiveArraysStruct.PARSED,
+        ObjectArrayStruct.PARSED,
+        NestedObjectArrayStruct.PARSED
     )
 }
 
@@ -43,6 +45,8 @@ interface TestStruct {
 
     fun binaryRepresentation(order: ByteOrder): ByteBuffer
 }
+
+private val <T : TestStruct> Array<T>.encodedSize inline get() = fold(0) { acc, item -> acc + item.encodedSize }
 
 @Struct
 data class AllPrimitivesStruct(
@@ -245,6 +249,130 @@ data class AllPrimitiveArraysStruct(
                 LongArray(5) { rng.nextLong() },
                 FloatArray(6) { rng.nextFloat() },
                 DoubleArray(7) { rng.nextDouble() },
+            )
+        }
+    }
+}
+
+@Struct
+data class ObjectArrayStruct(
+    @FixedSize(3)
+    val simples: Array<SimpleStruct>,
+    @FixedSize(4)
+    val nesteds: Array<SimpleStruct.MemberStruct>
+) : TestStruct {
+    override val encodedSize: Int get() = simples.encodedSize + nesteds.encodedSize
+
+    override fun binaryRepresentation(order: ByteOrder): ByteBuffer {
+        return ByteBuffer.allocate(encodedSize)
+            .order(order)
+            .apply {
+                simples.forEach { put(it.binaryRepresentation(order)) }
+                nesteds.forEach { put(it.binaryRepresentation(order)) }
+            }
+            .position(0)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as ObjectArrayStruct
+
+        if (!simples.contentEquals(other.simples)) return false
+        if (!nesteds.contentEquals(other.nesteds)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = simples.contentHashCode()
+        result = 31 * result + nesteds.contentHashCode()
+        return result
+    }
+
+    companion object {
+        internal val PARSED = StructDef(
+            ObjectArrayStruct::class.qualifiedName!!.replace('.', '/'),
+            listOf(
+                StructDef.Field.ObjectArray(
+                    "simples",
+                    "kotlin/Array",
+                    SimpleStruct.PARSED.name,
+                    StructDef.Field.SizeModifier.Fixed(3)
+                ),
+                StructDef.Field.ObjectArray(
+                    "nesteds",
+                    "kotlin/Array",
+                    SimpleStruct.MemberStruct.PARSED.name,
+                    StructDef.Field.SizeModifier.Fixed(4)
+                ),
+            ),
+            mockElement(ElementKind.CLASS) {}
+        )
+
+        fun getPopulatedInstance(seed: Int): ObjectArrayStruct {
+            val rng = Random(seed)
+
+            return ObjectArrayStruct(
+                Array(3) { SimpleStruct(rng.nextInt()) },
+                Array(4) { SimpleStruct.MemberStruct(SimpleStruct(rng.nextInt())) },
+            )
+        }
+    }
+}
+
+@Struct
+data class NestedObjectArrayStruct(
+    @FixedSize(10)
+    val structs: Array<ObjectArrayStruct>
+) : TestStruct {
+    override val encodedSize: Int = structs.encodedSize
+
+    override fun binaryRepresentation(order: ByteOrder): ByteBuffer {
+        return ByteBuffer.allocate(encodedSize)
+            .order(order)
+            .apply { structs.forEach { put(it.binaryRepresentation(order)) } }
+            .position(0)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as NestedObjectArrayStruct
+
+        if (!structs.contentEquals(other.structs)) return false
+        if (encodedSize != other.encodedSize) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = structs.contentHashCode()
+        result = 31 * result + encodedSize
+        return result
+    }
+
+    companion object {
+        internal val PARSED = StructDef(
+            NestedObjectArrayStruct::class.qualifiedName!!.replace('.', '/'),
+            listOf(
+                StructDef.Field.ObjectArray(
+                    "structs",
+                    "kotlin/Array",
+                    ObjectArrayStruct.PARSED.name,
+                    StructDef.Field.SizeModifier.Fixed(10)
+                ),
+            ),
+            mockElement(ElementKind.CLASS) {}
+        )
+
+        fun getPopulatedInstance(seed: Int): NestedObjectArrayStruct {
+            val rng = Random(seed)
+
+            return NestedObjectArrayStruct(
+                Array(10) { ObjectArrayStruct.getPopulatedInstance(rng.nextInt()) },
             )
         }
     }

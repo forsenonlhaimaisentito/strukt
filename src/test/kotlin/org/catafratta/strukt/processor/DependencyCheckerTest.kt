@@ -1,6 +1,6 @@
 package org.catafratta.strukt.processor
 
-import org.catafratta.strukt.AllPrimitiveArraysStruct
+import org.catafratta.strukt.*
 import org.catafratta.strukt.fieldsOf
 import org.junit.Test
 import javax.lang.model.element.ElementKind
@@ -30,6 +30,18 @@ internal class DependencyCheckerTest {
     @Test
     fun testPrimitiveArrays() {
         val structs = listOf(AllPrimitiveArraysStruct.PARSED)
+
+        DependencyChecker().check(structs)
+    }
+
+    @Test
+    fun testStructArrays() {
+        val structs = listOf(
+            SimpleStruct.PARSED,
+            SimpleStruct.MemberStruct.PARSED,
+            ObjectArrayStruct.PARSED,
+            NestedObjectArrayStruct.PARSED
+        )
 
         DependencyChecker().check(structs)
     }
