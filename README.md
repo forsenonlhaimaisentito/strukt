@@ -41,10 +41,10 @@ Right now, the following are supported:
 
 - Primitive types
 - Infinitely nested structs
+- Fixed size array fields
 
 Planned features:
 
-- Fixed size array fields
 - Variable size array fields:
     - Based on preceding integer field
     - Based on terminator sequence for ByteArray
@@ -87,7 +87,7 @@ plugins {
 }
 
 dependencies {
-    def struktVersion = "0.1.0"
+    def struktVersion = "0.2.0"
 
     implementation "org.catafratta.strukt:strukt:$struktVersion"
     kapt "org.catafratta.strukt:strukt:$struktVersion"
@@ -102,7 +102,7 @@ plugins {
 }
 
 dependencies {
-    val struktVersion = "0.1.0"
+    val struktVersion = "0.2.0"
 
     implementation("org.catafratta.strukt:strukt:$struktVersion")
     kapt("org.catafratta.strukt:strukt:$struktVersion")

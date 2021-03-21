@@ -1,9 +1,15 @@
 package org.catafratta.strukt
 
-import org.catafratta.strukt.processor.DeclaredStruct
+import org.catafratta.strukt.processor.StructDef
+import org.catafratta.strukt.processor.isPrimitive
 
-internal fun fieldsOf(vararg fields: Pair<String, String>): List<DeclaredStruct.Field> =
-    fields.map { (name, typeName) -> DeclaredStruct.Field(name, typeName) }
+internal fun fieldsOf(vararg fields: Pair<String, String>): List<StructDef.Field> =
+    fields.map { (name, typeName) ->
+        when {
+            typeName.isPrimitive -> StructDef.Field.Primitive(name, typeName)
+            else -> StructDef.Field.Object(name, typeName)
+        }
+    }
 
 
 internal fun parseHex(hex: CharSequence): ByteArray {

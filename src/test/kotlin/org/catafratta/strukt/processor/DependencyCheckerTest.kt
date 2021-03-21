@@ -1,13 +1,15 @@
 package org.catafratta.strukt.processor
 
+import org.catafratta.strukt.*
 import org.catafratta.strukt.fieldsOf
 import org.junit.Test
+import javax.lang.model.element.ElementKind
 
 internal class DependencyCheckerTest {
     @Test
     fun testPrimitives() {
         val structs = listOf(
-            DeclaredStruct(
+            StructDef(
                 "test/StructB",
                 fieldsOf(
                     "byteField" to "kotlin/Byte",
@@ -18,8 +20,27 @@ internal class DependencyCheckerTest {
                     "floatField" to "kotlin/Float",
                     "doubleField" to "kotlin/Double"
                 ),
-                MockElement()
+                mockElement(ElementKind.CLASS) {}
             )
+        )
+
+        DependencyChecker().check(structs)
+    }
+
+    @Test
+    fun testPrimitiveArrays() {
+        val structs = listOf(AllPrimitiveArraysStruct.PARSED)
+
+        DependencyChecker().check(structs)
+    }
+
+    @Test
+    fun testStructArrays() {
+        val structs = listOf(
+            SimpleStruct.PARSED,
+            SimpleStruct.MemberStruct.PARSED,
+            ObjectArrayStruct.PARSED,
+            NestedObjectArrayStruct.PARSED
         )
 
         DependencyChecker().check(structs)
@@ -28,10 +49,11 @@ internal class DependencyCheckerTest {
     @Test
     fun testValidDependencies() {
         val structs = listOf(
-            DeclaredStruct("test/StructA", fieldsOf("a" to "kotlin/Int"), MockElement()),
-            DeclaredStruct("test/StructB", fieldsOf("a" to "test/StructA", "b" to "kotlin/Int"), MockElement()),
-            DeclaredStruct("test/StructC", fieldsOf("a" to "test/StructD"), MockElement()),
-            DeclaredStruct("test/StructD", fieldsOf("a" to "kotlin/Int"), MockElement()),
+            StructDef("test/StructA", fieldsOf("a" to "kotlin/Int"), mockElement(ElementKind.CLASS) {}),
+            StructDef("test/StructB",
+                fieldsOf("a" to "test/StructA", "b" to "kotlin/Int"), mockElement(ElementKind.CLASS) {}),
+            StructDef("test/StructC", fieldsOf("a" to "test/StructD"), mockElement(ElementKind.CLASS) {}),
+            StructDef("test/StructD", fieldsOf("a" to "kotlin/Int"), mockElement(ElementKind.CLASS) {}),
         )
 
         DependencyChecker().check(structs)
@@ -40,9 +62,9 @@ internal class DependencyCheckerTest {
     @Test(expected = ProcessingException::class)
     fun testMissingDependencies() {
         val structs = listOf(
-            DeclaredStruct("test/StructA", fieldsOf("a" to "kotlin/Int"), MockElement()),
-            DeclaredStruct("test/StructB", fieldsOf("a" to "test/StructA"), MockElement()),
-            DeclaredStruct("test/StructC", fieldsOf("a" to "test/StructD"), MockElement()),
+            StructDef("test/StructA", fieldsOf("a" to "kotlin/Int"), mockElement(ElementKind.CLASS) {}),
+            StructDef("test/StructB", fieldsOf("a" to "test/StructA"), mockElement(ElementKind.CLASS) {}),
+            StructDef("test/StructC", fieldsOf("a" to "test/StructD"), mockElement(ElementKind.CLASS) {}),
         )
 
         DependencyChecker().check(structs)
@@ -51,10 +73,10 @@ internal class DependencyCheckerTest {
     @Test(expected = ProcessingException::class)
     fun testCircularDependencies() {
         val structs = listOf(
-            DeclaredStruct("test/StructA", fieldsOf("a" to "test/StructB"), MockElement()),
-            DeclaredStruct("test/StructB", fieldsOf("a" to "test/StructC"), MockElement()),
-            DeclaredStruct("test/StructC", fieldsOf("a" to "test/StructD"), MockElement()),
-            DeclaredStruct("test/StructD", fieldsOf("a" to "test/StructA"), MockElement()),
+            StructDef("test/StructA", fieldsOf("a" to "test/StructB"), mockElement(ElementKind.CLASS) {}),
+            StructDef("test/StructB", fieldsOf("a" to "test/StructC"), mockElement(ElementKind.CLASS) {}),
+            StructDef("test/StructC", fieldsOf("a" to "test/StructD"), mockElement(ElementKind.CLASS) {}),
+            StructDef("test/StructD", fieldsOf("a" to "test/StructA"), mockElement(ElementKind.CLASS) {}),
         )
 
         DependencyChecker().check(structs)

@@ -1,13 +1,15 @@
 package org.catafratta.strukt
 
-import org.catafratta.strukt.processor.DeclaredStruct
-import org.catafratta.strukt.processor.MockElement
+import org.catafratta.strukt.processor.StructDef
+import org.catafratta.strukt.processor.mockElement
 import org.catafratta.strukt.runtime.Codec
 import org.catafratta.strukt.runtime.binarySink
 import org.catafratta.strukt.runtime.binarySource
 import org.junit.Assert
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import javax.lang.model.element.ElementKind
+import kotlin.random.Random
 
 
 internal object TestStructs {
@@ -15,7 +17,10 @@ internal object TestStructs {
         AllPrimitivesStruct.PARSED,
         SimpleStruct.PARSED,
         SimpleStruct.MemberStruct.PARSED,
-        NestedStruct.PARSED
+        NestedStruct.PARSED,
+        AllPrimitiveArraysStruct.PARSED,
+        ObjectArrayStruct.PARSED,
+        NestedObjectArrayStruct.PARSED
     )
 }
 
@@ -40,6 +45,8 @@ interface TestStruct {
 
     fun binaryRepresentation(order: ByteOrder): ByteBuffer
 }
+
+private val <T : TestStruct> Array<T>.encodedSize inline get() = fold(0) { acc, item -> acc + item.encodedSize }
 
 @Struct
 data class AllPrimitivesStruct(
@@ -67,18 +74,18 @@ data class AllPrimitivesStruct(
     }
 
     companion object {
-        internal val PARSED = DeclaredStruct(
+        internal val PARSED = StructDef(
             AllPrimitivesStruct::class.qualifiedName!!.replace('.', '/'),
             listOf(
-                DeclaredStruct.Field("byte", "kotlin/Byte"),
-                DeclaredStruct.Field("short", "kotlin/Short"),
-                DeclaredStruct.Field("char", "kotlin/Char"),
-                DeclaredStruct.Field("int", "kotlin/Int"),
-                DeclaredStruct.Field("long", "kotlin/Long"),
-                DeclaredStruct.Field("float", "kotlin/Float"),
-                DeclaredStruct.Field("double", "kotlin/Double"),
+                StructDef.Field.Primitive("byte", "kotlin/Byte"),
+                StructDef.Field.Primitive("short", "kotlin/Short"),
+                StructDef.Field.Primitive("char", "kotlin/Char"),
+                StructDef.Field.Primitive("int", "kotlin/Int"),
+                StructDef.Field.Primitive("long", "kotlin/Long"),
+                StructDef.Field.Primitive("float", "kotlin/Float"),
+                StructDef.Field.Primitive("double", "kotlin/Double"),
             ),
-            MockElement()
+            mockElement(ElementKind.CLASS) {}
         )
     }
 }
@@ -103,23 +110,23 @@ data class SimpleStruct(val field: Int) : TestStruct {
         }
 
         companion object {
-            internal val PARSED = DeclaredStruct(
+            internal val PARSED = StructDef(
                 MemberStruct::class.qualifiedName!!.replace('.', '/'),
                 listOf(
-                    DeclaredStruct.Field("field", SimpleStruct.PARSED.name)
+                    StructDef.Field.Object("field", SimpleStruct.PARSED.name)
                 ),
-                MockElement()
+                mockElement(ElementKind.CLASS) {}
             )
         }
     }
 
     companion object {
-        internal val PARSED = DeclaredStruct(
+        internal val PARSED = StructDef(
             SimpleStruct::class.qualifiedName!!.replace('.', '/'),
             listOf(
-                DeclaredStruct.Field("field", "kotlin/Int")
+                StructDef.Field.Primitive("field", "kotlin/Int")
             ),
-            MockElement()
+            mockElement(ElementKind.CLASS) {}
         )
     }
 }
@@ -140,13 +147,233 @@ data class NestedStruct(
     }
 
     companion object {
-        internal val PARSED = DeclaredStruct(
+        internal val PARSED = StructDef(
             NestedStruct::class.qualifiedName!!.replace('.', '/'),
             listOf(
-                DeclaredStruct.Field("field", "kotlin/Long"),
-                DeclaredStruct.Field("child", SimpleStruct.PARSED.name)
+                StructDef.Field.Primitive("field", "kotlin/Long"),
+                StructDef.Field.Object("child", SimpleStruct.PARSED.name)
             ),
-            MockElement()
+            mockElement(ElementKind.CLASS) {}
         )
+    }
+}
+
+
+@Struct
+data class AllPrimitiveArraysStruct(
+    @FixedSize(1)
+    val bytes: ByteArray,
+    @FixedSize(2)
+    val shorts: ShortArray,
+    @FixedSize(3)
+    val chars: CharArray,
+    @FixedSize(4)
+    val ints: IntArray,
+    @FixedSize(5)
+    val longs: LongArray,
+    @FixedSize(6)
+    val floats: FloatArray,
+    @FixedSize(7)
+    val doubles: DoubleArray
+) : TestStruct {
+    override val encodedSize: Int = 147
+
+    override fun binaryRepresentation(order: ByteOrder): ByteBuffer {
+        return ByteBuffer.allocate(encodedSize)
+            .order(order)
+            .apply {
+                bytes.forEach { put(it) }
+                shorts.forEach { putShort(it) }
+                chars.forEach { putChar(it) }
+                ints.forEach { putInt(it) }
+                longs.forEach { putLong(it) }
+                floats.forEach { putFloat(it) }
+                doubles.forEach { putDouble(it) }
+            }
+            .position(0)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as AllPrimitiveArraysStruct
+
+        if (!bytes.contentEquals(other.bytes)) return false
+        if (!shorts.contentEquals(other.shorts)) return false
+        if (!chars.contentEquals(other.chars)) return false
+        if (!ints.contentEquals(other.ints)) return false
+        if (!longs.contentEquals(other.longs)) return false
+        if (!floats.contentEquals(other.floats)) return false
+        if (!doubles.contentEquals(other.doubles)) return false
+        if (encodedSize != other.encodedSize) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = bytes.contentHashCode()
+        result = 31 * result + shorts.contentHashCode()
+        result = 31 * result + chars.contentHashCode()
+        result = 31 * result + ints.contentHashCode()
+        result = 31 * result + longs.contentHashCode()
+        result = 31 * result + floats.contentHashCode()
+        result = 31 * result + doubles.contentHashCode()
+        result = 31 * result + encodedSize
+        return result
+    }
+
+    companion object {
+        internal val PARSED = StructDef(
+            AllPrimitiveArraysStruct::class.qualifiedName!!.replace('.', '/'),
+            listOf(
+                StructDef.Field.PrimitiveArray("bytes", "kotlin/ByteArray", StructDef.Field.SizeModifier.Fixed(1)),
+                StructDef.Field.PrimitiveArray("shorts", "kotlin/ShortArray", StructDef.Field.SizeModifier.Fixed(2)),
+                StructDef.Field.PrimitiveArray("chars", "kotlin/CharArray", StructDef.Field.SizeModifier.Fixed(3)),
+                StructDef.Field.PrimitiveArray("ints", "kotlin/IntArray", StructDef.Field.SizeModifier.Fixed(4)),
+                StructDef.Field.PrimitiveArray("longs", "kotlin/LongArray", StructDef.Field.SizeModifier.Fixed(5)),
+                StructDef.Field.PrimitiveArray("floats", "kotlin/FloatArray", StructDef.Field.SizeModifier.Fixed(6)),
+                StructDef.Field.PrimitiveArray("doubles", "kotlin/DoubleArray", StructDef.Field.SizeModifier.Fixed(7)),
+            ),
+            mockElement(ElementKind.CLASS) {}
+        )
+
+        fun getPopulatedInstance(seed: Int): AllPrimitiveArraysStruct {
+            val rng = Random(seed)
+
+            return AllPrimitiveArraysStruct(
+                ByteArray(1) { rng.nextBits(8).toByte() },
+                ShortArray(2) { rng.nextBits(16).toShort() },
+                CharArray(3) { rng.nextBits(16).toChar() },
+                IntArray(4) { rng.nextInt() },
+                LongArray(5) { rng.nextLong() },
+                FloatArray(6) { rng.nextFloat() },
+                DoubleArray(7) { rng.nextDouble() },
+            )
+        }
+    }
+}
+
+@Struct
+data class ObjectArrayStruct(
+    @FixedSize(3)
+    val simples: Array<SimpleStruct>,
+    @FixedSize(4)
+    val nesteds: Array<SimpleStruct.MemberStruct>
+) : TestStruct {
+    override val encodedSize: Int get() = simples.encodedSize + nesteds.encodedSize
+
+    override fun binaryRepresentation(order: ByteOrder): ByteBuffer {
+        return ByteBuffer.allocate(encodedSize)
+            .order(order)
+            .apply {
+                simples.forEach { put(it.binaryRepresentation(order)) }
+                nesteds.forEach { put(it.binaryRepresentation(order)) }
+            }
+            .position(0)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as ObjectArrayStruct
+
+        if (!simples.contentEquals(other.simples)) return false
+        if (!nesteds.contentEquals(other.nesteds)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = simples.contentHashCode()
+        result = 31 * result + nesteds.contentHashCode()
+        return result
+    }
+
+    companion object {
+        internal val PARSED = StructDef(
+            ObjectArrayStruct::class.qualifiedName!!.replace('.', '/'),
+            listOf(
+                StructDef.Field.ObjectArray(
+                    "simples",
+                    "kotlin/Array",
+                    SimpleStruct.PARSED.name,
+                    StructDef.Field.SizeModifier.Fixed(3)
+                ),
+                StructDef.Field.ObjectArray(
+                    "nesteds",
+                    "kotlin/Array",
+                    SimpleStruct.MemberStruct.PARSED.name,
+                    StructDef.Field.SizeModifier.Fixed(4)
+                ),
+            ),
+            mockElement(ElementKind.CLASS) {}
+        )
+
+        fun getPopulatedInstance(seed: Int): ObjectArrayStruct {
+            val rng = Random(seed)
+
+            return ObjectArrayStruct(
+                Array(3) { SimpleStruct(rng.nextInt()) },
+                Array(4) { SimpleStruct.MemberStruct(SimpleStruct(rng.nextInt())) },
+            )
+        }
+    }
+}
+
+@Struct
+data class NestedObjectArrayStruct(
+    @FixedSize(10)
+    val structs: Array<ObjectArrayStruct>
+) : TestStruct {
+    override val encodedSize: Int = structs.encodedSize
+
+    override fun binaryRepresentation(order: ByteOrder): ByteBuffer {
+        return ByteBuffer.allocate(encodedSize)
+            .order(order)
+            .apply { structs.forEach { put(it.binaryRepresentation(order)) } }
+            .position(0)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as NestedObjectArrayStruct
+
+        if (!structs.contentEquals(other.structs)) return false
+        if (encodedSize != other.encodedSize) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = structs.contentHashCode()
+        result = 31 * result + encodedSize
+        return result
+    }
+
+    companion object {
+        internal val PARSED = StructDef(
+            NestedObjectArrayStruct::class.qualifiedName!!.replace('.', '/'),
+            listOf(
+                StructDef.Field.ObjectArray(
+                    "structs",
+                    "kotlin/Array",
+                    ObjectArrayStruct.PARSED.name,
+                    StructDef.Field.SizeModifier.Fixed(10)
+                ),
+            ),
+            mockElement(ElementKind.CLASS) {}
+        )
+
+        fun getPopulatedInstance(seed: Int): NestedObjectArrayStruct {
+            val rng = Random(seed)
+
+            return NestedObjectArrayStruct(
+                Array(10) { ObjectArrayStruct.getPopulatedInstance(rng.nextInt()) },
+            )
+        }
     }
 }

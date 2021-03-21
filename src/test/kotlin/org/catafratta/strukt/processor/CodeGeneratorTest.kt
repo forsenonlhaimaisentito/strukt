@@ -51,6 +51,27 @@ class CodeGeneratorTest {
         testCodec(outerCodec, data)
     }
 
+    @Test
+    fun testPrimitiveArrays() {
+        val strukt = MockStrukt()
+        val codec = getCodecInstance<AllPrimitiveArraysStruct>(strukt)
+
+        val data = AllPrimitiveArraysStruct.getPopulatedInstance(0x31337)
+        testCodec(codec, data)
+    }
+
+    @Test
+    fun testObjectArrays() {
+        val strukt = MockStrukt()
+        val outerCodec = getCodecInstance<NestedObjectArrayStruct>(strukt)
+        getCodecInstance<SimpleStruct>(strukt)  // For side-effects
+        getCodecInstance<SimpleStruct.MemberStruct>(strukt)  // For side-effects
+        getCodecInstance<ObjectArrayStruct>(strukt)  // For side-effects
+
+        val data = NestedObjectArrayStruct.getPopulatedInstance(0x31337)
+        testCodec(outerCodec, data)
+    }
+
     private inline fun <reified T : Any> getCodecInstance(strukt: Strukt): Codec<T> {
         val codecClass = loadCompiledCodec(T::class)
         val ctor = codecClass.getDeclaredConstructor(Strukt::class.java)
@@ -66,7 +87,7 @@ class CodeGeneratorTest {
             klass.java
                 .getDeclaredField("PARSED")
                 .apply { isAccessible = true }
-                .get(null) as DeclaredStruct
+                .get(null) as StructDef
         } catch (e: Exception) {
             throw RuntimeException("PARSED constant not found on test struct", e)
         }
@@ -75,13 +96,13 @@ class CodeGeneratorTest {
         return loadCompiledCodec(parsed) as Class<Codec<T>>
     }
 
-    private fun loadCompiledCodec(struct: DeclaredStruct): Class<*> {
-        val codecClass = compilerResult.classLoader.loadClass(struct.codecClassName())
+    private fun loadCompiledCodec(structDef: StructDef): Class<*> {
+        val codecClass = compilerResult.classLoader.loadClass(structDef.codecClassName())
         Assert.assertTrue("Generated class should implement Codec", Codec::class.java.isAssignableFrom(codecClass))
         return codecClass
     }
 
-    private fun DeclaredStruct.codecClassName(): String =
+    private fun StructDef.codecClassName(): String =
         CodecNamingStrategy.fullNameFor(name.packageName, name.classNames)
 
     companion object {
