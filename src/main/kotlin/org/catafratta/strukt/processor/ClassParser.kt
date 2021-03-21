@@ -58,6 +58,8 @@ internal class ClassParser {
                 valueParameters.any { it.varargElementType != null } ->
                     "Variadic constructor arguments are not supported"
 
+                valueParameters.any { it.type!!.isNullable } -> "Nullable fields are not supported"
+
                 else -> null
             }?.let { return@run it }
 

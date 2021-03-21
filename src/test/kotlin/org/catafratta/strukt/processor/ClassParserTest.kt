@@ -1,7 +1,10 @@
 package org.catafratta.strukt.processor
 
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
+import com.squareup.kotlinpoet.metadata.toImmutable
 import kotlinx.metadata.Flag
+import kotlinx.metadata.KmType
+import kotlinx.metadata.flagsOf
 import org.junit.Assert
 import org.junit.Test
 import javax.lang.model.element.ElementKind
@@ -207,6 +210,29 @@ class ClassParserTest {
                 }.toMetadata()
 
             +mockElement(ElementKind.CONSTRUCTOR) {}
+        }
+
+        ClassParser().parse(element)
+    }
+
+    @Test(expected = ProcessingException::class)
+    fun testNullableField() {
+        val element = mockElement(ElementKind.CLASS) {
+            annotations +=
+                buildKmClass("test/NullableStruct") {
+                    addFlags(Flag.Class.IS_CLASS)
+
+                    addPrimaryConstructor {
+                        addPropertyParam("nullable") {
+                            type = classType("kotlin/Int").apply {
+                                flags = flagsOf(Flag.Type.IS_NULLABLE)
+                            }
+                        }.withBackingField()
+                    }
+                }.toMetadata()
+
+            +mockElement(ElementKind.CONSTRUCTOR) {}
+            +mockElement(ElementKind.FIELD) { simpleName = "nullable" }
         }
 
         ClassParser().parse(element)
