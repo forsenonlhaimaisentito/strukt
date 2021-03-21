@@ -238,6 +238,25 @@ class ClassParserTest {
         ClassParser().parse(element)
     }
 
+    @Test(expected = ProcessingException::class)
+    fun testBooleanField() {
+        val element = mockElement(ElementKind.CLASS) {
+            annotations +=
+                buildKmClass("test/BooleanStruct") {
+                    addFlags(Flag.Class.IS_CLASS)
+
+                    addPrimaryConstructor {
+                        addPropertyParam("boolean") { type = classType("kotlin/Boolean") }.withBackingField()
+                    }
+                }.toMetadata()
+
+            +mockElement(ElementKind.CONSTRUCTOR) {}
+            +mockElement(ElementKind.FIELD) { simpleName = "boolean" }
+        }
+
+        ClassParser().parse(element)
+    }
+
     @Test
     fun testObjectArrays() {
         val element = mockElement(ElementKind.CLASS) {

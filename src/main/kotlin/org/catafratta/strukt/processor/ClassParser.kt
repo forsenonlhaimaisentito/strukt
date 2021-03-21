@@ -60,6 +60,9 @@ internal class ClassParser {
 
                 valueParameters.any { it.type!!.isNullable } -> "Nullable fields are not supported"
 
+                valueParameters.any { it.type!!.qualifiedName == "kotlin/Boolean" } ->
+                    "Boolean fields are not supported"
+
                 else -> null
             }?.let { return@run it }
 
