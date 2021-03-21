@@ -23,7 +23,7 @@ internal class DependencyChecker {
 
     private fun Node.populateDependencies(available: List<Node>) {
         dependencies = structDef.fields
-            .filterNot { it.typeName.isPrimitive }
+            .filterNot { it.typeName.isPrimitive || it.typeName.isPrimitiveArray }
             .map {
                 available.findByName(it.typeName)
                     ?: throw ProcessingException("${it.name}: ${it.typeName} is not a struct", structDef.source)

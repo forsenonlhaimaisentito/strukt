@@ -58,10 +58,13 @@ class StructProcessorTest {
             package test
 
             import org.catafratta.strukt.Struct
+            import org.catafratta.strukt.FixedSize
             
             @Struct
             data class SomeStruct(
-                val someField: Int
+                val someField: Int,
+                @FixedSize(1337)
+                val someArray: IntArray
             )
             
             data class NotAStruct(
