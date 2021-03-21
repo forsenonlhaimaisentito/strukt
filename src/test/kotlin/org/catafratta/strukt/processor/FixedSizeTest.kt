@@ -96,4 +96,32 @@ class FixedSizeTest {
 
         ClassParser().parse(element)
     }
+
+    @Test(expected = ProcessingException::class)
+    fun testMultiDimensional() {
+        val element = mockElement(ElementKind.CLASS) {
+            annotations +=
+                buildKmClass("test/MultiDimensionalStruct") {
+                    addFlags(Flag.Class.IS_CLASS)
+
+                    addPrimaryConstructor {
+                        addPropertyParam("matrix") {
+                            type = classType("kotlin/Array") withArguments {
+                                invariant(classType("kotlin/Array") withArguments {
+                                    invariant(classType("kotlin/Int"))
+                                })
+                            }
+                        }.withBackingField()
+                    }
+                }.toMetadata()
+
+            +mockElement(ElementKind.CONSTRUCTOR) {}
+            +mockElement(ElementKind.FIELD) {
+                simpleName = "matrix"
+                annotations += mockFixedSize(13)
+            }
+        }
+
+        ClassParser().parse(element)
+    }
 }

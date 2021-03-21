@@ -61,6 +61,15 @@ class ClassParserTest {
     }
 
     @Test(expected = ProcessingException::class)
+    fun testNonKotlinClass() {
+        val element = mockElement(ElementKind.CLASS) {
+            +mockElement(ElementKind.CONSTRUCTOR) {}
+        }
+
+        ClassParser().parse(element)
+    }
+
+    @Test(expected = ProcessingException::class)
     fun testMultipleConstructors() {
         val element = mockElement(ElementKind.CLASS) {
             annotations +=
