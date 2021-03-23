@@ -70,6 +70,9 @@ internal class ClassParser {
                 val property = properties[it.name]
                     ?: return@run "Constructor argument `${it.name}` must correspond to a property"
 
+                if (property.isProtected || property.isPrivate || property.isPrivate_to_this)
+                    return@run "Property ${kmClass.name}.${it.name} must be public"
+
                 if (property.returnType != it.type)
                     return@run "Property ${kmClass.name}.${it.name}'s type doesn't match its constructor argument's type"
 

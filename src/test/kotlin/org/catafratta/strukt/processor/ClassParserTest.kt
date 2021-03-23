@@ -1,9 +1,7 @@
 package org.catafratta.strukt.processor
 
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
-import com.squareup.kotlinpoet.metadata.toImmutable
 import kotlinx.metadata.Flag
-import kotlinx.metadata.KmType
 import kotlinx.metadata.flagsOf
 import org.junit.Assert
 import org.junit.Test
@@ -265,6 +263,42 @@ class ClassParserTest {
 
         ClassParser().parse(element)
     }
+
+    @Test
+    fun testPrivateField() {
+        listOf(
+            flagsOf(Flag.IS_PRIVATE),
+            flagsOf(Flag.IS_PROTECTED),
+            flagsOf(Flag.IS_PRIVATE_TO_THIS)
+        ).map { propFlags ->
+            mockElement(ElementKind.CLASS) {
+                annotations +=
+                    buildKmClass("test/PrivateFieldStruct") {
+                        addFlags(Flag.Class.IS_CLASS)
+
+                        addPrimaryConstructor {
+                            addPropertyParam("field") {
+                                type = classType("test/SomeType")
+                            }.withBackingField().apply {
+                                flags = propFlags
+                            }
+                        }
+                    }.toMetadata()
+
+                +mockElement(ElementKind.CONSTRUCTOR) {}
+                +mockElement(ElementKind.FIELD) { simpleName = "field" }
+            }
+        }.forEachIndexed { i, element ->
+            try {
+                ClassParser().parse(element)
+
+                Assert.fail("Item $i passed as a valid class")
+            } catch (_: ProcessingException) {
+                // OK
+            }
+        }
+    }
+
 
     @Test
     fun testObjectArrays() {
