@@ -338,4 +338,138 @@ class ClassParserTest {
 
         Assert.assertEquals(expected, struct)
     }
+
+    @Test
+    fun testSizeField() {
+        val element = mockElement(ElementKind.CLASS) {
+            annotations +=
+                buildKmClass("test/SizeFieldStruct") {
+                    addFlags(Flag.Class.IS_CLASS)
+
+                    addPrimaryConstructor {
+                        addPropertyParam("size") { type = classType("kotlin/Short") }.withBackingField()
+                        addPropertyParam("data") { type = classType("kotlin/IntArray") }.withBackingField()
+                    }
+                }.toMetadata()
+
+            +mockElement(ElementKind.CONSTRUCTOR) {}
+            +mockElement(ElementKind.FIELD) { simpleName = "size" }
+            +mockElement(ElementKind.FIELD) {
+                simpleName = "data"
+                annotations += mockSizeField("size")
+            }
+        }
+
+        val expected = run {
+            val sizeField = StructDef.Field.Primitive("size", "kotlin/Short")
+
+            StructDef(
+                "test/SizeFieldStruct",
+                listOf(
+                    sizeField,
+                    StructDef.Field.PrimitiveArray(
+                        "data",
+                        "kotlin/IntArray",
+                        StructDef.Field.SizeModifier.FieldBased(sizeField)
+                    )
+                ),
+                element
+            )
+        }
+
+        val struct = ClassParser().parse(element)
+
+        Assert.assertEquals(expected, struct)
+    }
+
+    @Test(expected = ProcessingException::class)
+    fun testSizeFieldMissing() {
+        val element = mockElement(ElementKind.CLASS) {
+            annotations +=
+                buildKmClass("test/SizeFieldStruct") {
+                    addFlags(Flag.Class.IS_CLASS)
+
+                    addPrimaryConstructor {
+                        addPropertyParam("data") { type = classType("kotlin/IntArray") }.withBackingField()
+                    }
+                }.toMetadata()
+
+            +mockElement(ElementKind.CONSTRUCTOR) {}
+            +mockElement(ElementKind.FIELD) {
+                simpleName = "data"
+                annotations += mockSizeField("size")
+            }
+        }
+
+        ClassParser().parse(element)
+    }
+
+    @Test(expected = ProcessingException::class)
+    fun testSizeFieldBadOrder() {
+        val element = mockElement(ElementKind.CLASS) {
+            annotations +=
+                buildKmClass("test/SizeFieldStruct") {
+                    addFlags(Flag.Class.IS_CLASS)
+
+                    addPrimaryConstructor {
+                        addPropertyParam("data") { type = classType("kotlin/IntArray") }.withBackingField()
+                        addPropertyParam("size") { type = classType("kotlin/Short") }.withBackingField()
+                    }
+                }.toMetadata()
+
+            +mockElement(ElementKind.CONSTRUCTOR) {}
+            +mockElement(ElementKind.FIELD) { simpleName = "size" }
+            +mockElement(ElementKind.FIELD) {
+                simpleName = "data"
+                annotations += mockSizeField("size")
+            }
+        }
+
+        ClassParser().parse(element)
+    }
+
+    @Test(expected = ProcessingException::class)
+    fun testSizeFieldNonPrimitive() {
+        testSizeFieldOfType("test/SomeType")
+    }
+
+    @Test(expected = ProcessingException::class)
+    fun testSizeFieldFloat() {
+        testSizeFieldOfType("kotlin/Float")
+    }
+
+    @Test(expected = ProcessingException::class)
+    fun testSizeFieldDouble() {
+        testSizeFieldOfType("kotlin/Double")
+    }
+
+    @Test(expected = ProcessingException::class)
+    fun testSizeFieldLong() {
+        testSizeFieldOfType("kotlin/Long")
+    }
+
+    private fun testSizeFieldOfType(typeName: String) {
+        val element = mockElement(ElementKind.CLASS) {
+            annotations +=
+                buildKmClass("test/SizeFieldStruct") {
+                    addFlags(Flag.Class.IS_CLASS)
+
+                    addPrimaryConstructor {
+                        addPropertyParam("size") { type = classType(typeName) }.withBackingField()
+                        addPropertyParam("data") { type = classType("kotlin/IntArray") }.withBackingField()
+                    }
+                }.toMetadata()
+
+            +mockElement(ElementKind.CONSTRUCTOR) {}
+            +mockElement(ElementKind.FIELD) { simpleName = "size" }
+            +mockElement(ElementKind.FIELD) {
+                simpleName = "data"
+                annotations += mockSizeField("size")
+            }
+        }
+
+        ClassParser().parse(element)
+    }
+
+
 }

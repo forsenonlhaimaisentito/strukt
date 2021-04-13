@@ -72,6 +72,7 @@ internal data class StructDef(
          */
         sealed class SizeModifier {
             data class Fixed(val size: Int) : SizeModifier()
+            data class FieldBased(val field: Field) : SizeModifier()
         }
     }
 }

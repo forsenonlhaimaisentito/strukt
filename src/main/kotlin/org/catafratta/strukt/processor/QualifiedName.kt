@@ -17,6 +17,8 @@ internal val QualifiedName.classPart: String get() = substringAfterLast('/')
 
 internal val QualifiedName.isPrimitive: Boolean get() = this in primitiveTypes
 
+internal val QualifiedName.isInteger: Boolean get() = isPrimitive && this != "kotlin/Float" && this != "kotlin/Double"
+
 /**
  * Kotlin's primitive types.
  */

@@ -81,6 +81,15 @@ class CodeGeneratorTest {
         testCodec(codec, data)
     }
 
+    @Test
+    fun testSizeField() {
+        val strukt = MockStrukt()
+        val codec = getCodecInstance<DynamicallySizedStruct>(strukt)
+
+        val data = DynamicallySizedStruct.getPopulatedInstance(0x31337)
+        testCodec(codec, data)
+    }
+
     private inline fun <reified T : Any> getCodecInstance(strukt: Strukt): Codec<T> {
         val codecClass = loadCompiledCodec(T::class)
         val ctor = codecClass.getDeclaredConstructor(Strukt::class.java)

@@ -3,6 +3,7 @@ package org.catafratta.strukt.processor
 import com.squareup.kotlinpoet.metadata.*
 import kotlinx.metadata.KmClassifier
 import org.catafratta.strukt.FixedSize
+import org.catafratta.strukt.SizeField
 import javax.lang.model.element.Element
 
 @KotlinPoetMetadataPreview
@@ -101,40 +102,61 @@ internal class ClassParser {
         val ctor = kmClass.constructors.first()
         val properties = kmClass.properties.map { it.name to it }.toMap()
 
-        return ctor.valueParameters.map { param ->
+        val fields = mutableListOf<StructDef.Field>()
+
+        ctor.valueParameters.forEach { param ->
             // Guaranteed existing by verifyConstructor()
             val fieldName = properties.getValue(param.name).fieldSignature!!.name
             val fieldElement = element.enclosedElements.first {
                 it.kind.isField && it.simpleName.contentEquals(fieldName)
             }
 
-            parseField(fieldElement, param)
+            fields += parseField(fields, fieldElement, param)
         }
+
+        return fields
     }
 
-    private fun parseField(fieldElement: Element, param: ImmutableKmValueParameter): StructDef.Field {
+    private fun parseField(
+        fields: List<StructDef.Field>,
+        fieldElement: Element,
+        param: ImmutableKmValueParameter
+    ): StructDef.Field {
         val typeName = param.type!!.qualifiedName
 
         return when {
             typeName.isPrimitive -> StructDef.Field.Primitive(param.name, typeName)
             typeName.isPrimitiveArray ->
-                StructDef.Field.PrimitiveArray(param.name, typeName, findSizeModifier(fieldElement))
+                StructDef.Field.PrimitiveArray(param.name, typeName, findSizeModifier(fields, fieldElement))
             typeName.isGenericArray ->
                 StructDef.Field.ObjectArray(
                     param.name,
                     typeName,
                     param.type!!.arguments.first().type!!.qualifiedName, // Guaranteed existing by verifyConstructor()
-                    findSizeModifier(fieldElement)
+                    findSizeModifier(fields, fieldElement)
                 )
             else -> StructDef.Field.Object(param.name, typeName)
         }
     }
 
-    private fun findSizeModifier(fieldElement: Element): StructDef.Field.SizeModifier {
+    private fun findSizeModifier(fields: List<StructDef.Field>, fieldElement: Element): StructDef.Field.SizeModifier {
         fieldElement.getAnnotation(FixedSize::class.java)?.let {
             if (it.size < 0) throw ProcessingException("Array size must be non-negative", fieldElement)
 
             return StructDef.Field.SizeModifier.Fixed(it.size)
+        }
+
+        fieldElement.getAnnotation(SizeField::class.java)?.let { ann ->
+            val sizeField = fields.find { it.name == ann.fieldName }
+                ?: throw ProcessingException("No preceding field '${ann.fieldName}' found", fieldElement)
+
+            if (!sizeField.typeName.isInteger)
+                throw ProcessingException("Size fields must be of an integer primitive type", fieldElement)
+
+            if (sizeField.typeName == "kotlin/Long")
+                throw ProcessingException("Long size fields are not supported", fieldElement)
+
+            return StructDef.Field.SizeModifier.FieldBased(sizeField)
         }
 
         throw ProcessingException("A size modifier is required on array types", fieldElement)

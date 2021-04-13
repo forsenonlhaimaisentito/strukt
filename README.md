@@ -42,11 +42,12 @@ Right now, the following are supported:
 - Primitive types
 - Infinitely nested structs
 - Fixed size array fields
+- Variable size array fields:
+  - Based on preceding integer field
 
 Planned features:
 
 - Variable size array fields:
-    - Based on preceding integer field
     - Based on terminator sequence for ByteArray
 - Tagged unions via sealed classes
 - Custom type codecs (resolved at compile-time)

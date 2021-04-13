@@ -58,12 +58,16 @@ internal class CodeGenerator(private val structDef: StructDef) {
         .build()
 
     private fun buildReadCode() = CodeBlock.builder().apply {
+        structDef.fields.forEach {
+            add("val %N: %T = ", fieldTempName(it.name), it.poetTypeName)
+            addReadStatement(it)
+            add("\n")
+        }
+        add("\n")
+
         add("return %T(\n", structClass)
         indent()
-        structDef.fields.forEach {
-            addReadStatement(it)
-            add(",\n")
-        }
+        structDef.fields.forEach { add("%N,\n", fieldTempName(it.name)) }
         unindent()
         add(")")
     }.build()
@@ -80,7 +84,7 @@ internal class CodeGenerator(private val structDef: StructDef) {
             is StructDef.Field.ObjectArray -> {
                 add(
                     "Array<%T>(%L) { ",
-                    ClassName(field.itemTypeName.packageName, field.itemTypeName.classNames),
+                    field.itemTypeName.poetClassName,
                     sizeExpressionFor(field.sizeModifier)
                 )
                 add("strukt.read(source)")
@@ -89,9 +93,31 @@ internal class CodeGenerator(private val structDef: StructDef) {
         }
     }
 
+    private fun fieldTempName(fieldName: String) = "_field_$fieldName"
+
+    private val QualifiedName.poetClassName: ClassName inline get() = ClassName(packageName, classNames)
+
+    private val StructDef.Field.poetTypeName: TypeName
+        inline get() = when (this) {
+            is StructDef.Field.ObjectArray -> typeName.poetClassName.parameterizedBy(itemTypeName.poetClassName)
+            else -> typeName.poetClassName
+        }
+
     private fun sizeExpressionFor(sizeModifier: StructDef.Field.SizeModifier): String {
         return when (sizeModifier) {
             is StructDef.Field.SizeModifier.Fixed -> "${sizeModifier.size}"
+            is StructDef.Field.SizeModifier.FieldBased -> {
+                val builder = CodeBlock.builder()
+
+                builder.add("%N", fieldTempName(sizeModifier.field.name))
+
+                when (sizeModifier.field.typeName) {
+                    "kotlin/Byte" -> builder.add(".toInt().and(0xFF)")
+                    "kotlin/Short", "kotlin/Char" -> builder.add(".toInt().and(0xFFFF)")
+                }
+
+                builder.build().toString()
+            }
         }
     }
 

@@ -21,7 +21,8 @@ internal object TestStructs {
         WeirdNameStruct.PARSED,
         AllPrimitiveArraysStruct.PARSED,
         ObjectArrayStruct.PARSED,
-        NestedObjectArrayStruct.PARSED
+        NestedObjectArrayStruct.PARSED,
+        DynamicallySizedStruct.PARSED
     )
 }
 
@@ -152,7 +153,7 @@ data class NestedStruct(
             NestedStruct::class.qualifiedName!!.replace('.', '/'),
             listOf(
                 StructDef.Field.Primitive("field", "kotlin/Long"),
-                StructDef.Field.Object("child", SimpleStruct.PARSED.name)
+                StructDef.Field.Object("child", SimpleStruct.MemberStruct.PARSED.name)
             ),
             mockElement(ElementKind.CLASS) {}
         )
@@ -397,6 +398,100 @@ data class NestedObjectArrayStruct(
 
             return NestedObjectArrayStruct(
                 Array(10) { ObjectArrayStruct.getPopulatedInstance(rng.nextInt()) },
+            )
+        }
+    }
+}
+
+@Struct
+data class DynamicallySizedStruct(
+    val bytesSize: Byte,
+    val bytes: ByteArray,
+    val shortsSize: Short,
+    val shorts: ShortArray,
+    val intsSize: Int,
+    val ints: IntArray,
+) : TestStruct {
+    override val encodedSize: Int get() = 7 + bytes.size + 2 * shorts.size + 4 * ints.size
+
+    override fun binaryRepresentation(order: ByteOrder): ByteBuffer {
+        return ByteBuffer.allocate(encodedSize)
+            .order(order)
+            .apply {
+                put(bytesSize)
+                put(bytes)
+                putShort(shortsSize)
+                shorts.forEach { putShort(it) }
+                putInt(intsSize)
+                ints.forEach { putInt(it) }
+            }
+            .position(0)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is DynamicallySizedStruct) return false
+
+        if (bytesSize != other.bytesSize) return false
+        if (!bytes.contentEquals(other.bytes)) return false
+        if (shortsSize != other.shortsSize) return false
+        if (!shorts.contentEquals(other.shorts)) return false
+        if (intsSize != other.intsSize) return false
+        if (!ints.contentEquals(other.ints)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = bytesSize.toInt().and(0xFF)
+        result = 31 * result + bytes.contentHashCode()
+        result = 31 * result + shortsSize.toInt().and(0xFFFF)
+        result = 31 * result + shorts.contentHashCode()
+        result = 31 * result + intsSize
+        result = 31 * result + ints.contentHashCode()
+        return result
+    }
+
+
+    companion object {
+        internal val PARSED = run {
+            val bytesSizeField = StructDef.Field.Primitive("bytesSize", "kotlin/Byte")
+            val shortsSizeField = StructDef.Field.Primitive("shortsSize", "kotlin/Short")
+            val intsSizeField = StructDef.Field.Primitive("intsSize", "kotlin/Int")
+
+            StructDef(
+                DynamicallySizedStruct::class.qualifiedName!!.replace('.', '/'),
+                listOf(
+                    bytesSizeField,
+                    StructDef.Field.PrimitiveArray(
+                        "bytes",
+                        "kotlin/ByteArray",
+                        StructDef.Field.SizeModifier.FieldBased(bytesSizeField)
+                    ),
+                    shortsSizeField,
+                    StructDef.Field.PrimitiveArray(
+                        "shorts",
+                        "kotlin/ShortArray",
+                        StructDef.Field.SizeModifier.FieldBased(shortsSizeField)
+                    ),
+                    intsSizeField,
+                    StructDef.Field.PrimitiveArray(
+                        "ints",
+                        "kotlin/IntArray",
+                        StructDef.Field.SizeModifier.FieldBased(intsSizeField)
+                    ),
+                ),
+                mockElement(ElementKind.CLASS) {}
+            )
+        }
+
+        fun getPopulatedInstance(seed: Int): DynamicallySizedStruct {
+            val rng = Random(seed)
+
+            return DynamicallySizedStruct(
+                130.toByte(), rng.nextBytes(130),
+                0xF16A.toShort(), ShortArray(0xF16A) { rng.nextBits(16).toShort() },
+                1337, IntArray(1337) { rng.nextInt() },
             )
         }
     }
